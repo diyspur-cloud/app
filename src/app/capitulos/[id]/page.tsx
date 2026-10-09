@@ -1,5 +1,45 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getChapters } from '@/features/catalog/queries';
+import { ChapterInteractions } from '@/components/chapters/chapter-interactions';
+import { QuizPanel } from '@/components/quiz/quiz-panel';
 import { YouTubeFacade } from '@/components/youtube-facade';
-export default async function ChapterPage({params}:{params:Promise<{id:string}>}){const {id}=await params;const result=await getChapters(id);if(!result)notFound();const {chapter,season,book,comments}=result;return <div className="container"><header className="page-intro" style={{paddingBottom:26}}><nav className="breadcrumbs" aria-label="Trilha de navegação"><Link href="/livros">Livros</Link>{book&&<><span>/</span><Link href={`/livros/${book.slug}`}>{book.title}</Link></>}{season&&<><span>/</span><Link href={`/temporadas/${season.slug}`}>{season.title}</Link></>}<span>/</span><span>Capítulo {chapter.number}</span></nav><span className="eyebrow">Capítulo {chapter.number}</span><h1>{chapter.title}</h1><p>{chapter.reading_range??'Um novo capítulo, uma nova conversa.'}</p></header><div className="chapter-layout"><section><YouTubeFacade videoUrl={chapter.youtube_url} title={chapter.title}/>{chapter.summary&&<section className="section" style={{paddingBlock:26}}><h2 style={{fontFamily:'var(--font-serif)',fontWeight:400}}>Sobre este capítulo</h2><p style={{color:'var(--color-muted)',marginTop:10}}>{chapter.summary}</p></section>}<section className="section" style={{paddingTop:25}}><div className="section-head"><div><span className="eyebrow">Juntos na leitura</span><h2>O que ficou com você?</h2></div></div>{comments.length?comments.map((comment)=><article className="comment-card" key={comment.id}>{comment.is_spoiler?<details><summary className="text-link">Revelar trecho com spoiler</summary><p>{comment.content}</p></details>:<p>{comment.content}</p>}<span className="field-hint">Uma conversa da comunidade</span></article>):<div className="empty-state"><h3>A conversa começa com uma leitura</h3><p>Os comentários deste capítulo aparecem aqui quando a comunidade começar a conversar.</p><div className="empty-actions"><Link className="button button-dark button-small" href="/entrar">Entre para participar</Link></div></div>}</section></section><aside className="chapter-aside"><h2>Ao lado da leitura</h2><p>{book?`Você está lendo “${book.title}”. `:''}{season?`${season.title} · capítulo ${chapter.number}. `:''}Continue no seu ritmo.</p>{book&&<p style={{marginTop:14}}><Link className="text-link" href={`/livros/${book.slug}`}>Sobre o livro →</Link></p>}<p style={{marginTop:10}}><Link className="text-link" href="/comunidade">Ir para as conversas →</Link></p><div className="notice" style={{marginTop:18}}>Seu progresso e suas respostas são privados por padrão.</div></aside></div></div>;}
+import { TimedCommentList } from '@/components/video/timed-comment-list';
+import { getChapters } from '@/features/catalog/queries';
+import { getTimedComments } from '@/features/video-comments/queries';
+
+export default async function ChapterPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const result = await getChapters(id);
+  if (!result) notFound();
+  const { chapter, season, book, comments, progress, previous, next, meeting, questions, signedIn, viewerId } = result;
+  const timedComments = await getTimedComments(chapter.id);
+  const meetingDate = meeting?.scheduled_at ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(meeting.scheduled_at)) : null;
+  const safeMeetingUrl = meeting?.meeting_url && /^https:\/\//i.test(meeting.meeting_url) ? meeting.meeting_url : null;
+
+  return <div className="container">
+    <header className="page-intro chapter-intro">
+      <nav className="breadcrumbs" aria-label="Trilha de navegação"><Link href="/livros">Livros</Link>{book && <><span>/</span><Link href={`/livros/${book.slug}`}>{book.title}</Link></>}{season && <><span>/</span><Link href={`/temporadas/${season.slug}`}>{season.title}</Link></>}<span>/</span><span>Capítulo {chapter.number}</span></nav>
+      <span className="eyebrow">Capítulo {chapter.number}</span><h1>{chapter.title}</h1><p>{chapter.reading_range ?? 'Um novo capítulo, uma nova conversa.'}</p>
+    </header>
+    <div className="chapter-layout">
+      <section className="chapter-main">
+        <YouTubeFacade videoUrl={chapter.youtube_url} title={chapter.title} />
+        <TimedCommentList comments={timedComments} chapterId={chapter.id} signedIn={signedIn} videoUrl={chapter.youtube_url} />
+        {chapter.summary && <section className="section chapter-summary"><h2>Sobre este capítulo</h2><p>{chapter.summary}</p></section>}
+        <ChapterInteractions chapterId={chapter.id} signedIn={signedIn} viewerId={viewerId} progress={progress?.status ?? null} comments={comments} />
+        <QuizPanel chapterId={chapter.id} questions={questions} signedIn={signedIn} />
+        <nav className="chapter-navigation" aria-label="Navegação de capítulos">
+          {previous ? <Link className="chapter-nav-link" href={`/capitulos/${previous.id}`}><span>← Capítulo anterior</span><strong>{previous.title}</strong></Link> : <span />}
+          {next ? <Link className="chapter-nav-link chapter-nav-next" href={`/capitulos/${next.id}`}><span>Próximo capítulo →</span><strong>{next.title}</strong></Link> : <span className="field-hint">Você chegou ao capítulo mais recente desta temporada.</span>}
+        </nav>
+      </section>
+      <aside className="chapter-aside">
+        <h2>Ao lado da leitura</h2><p>{book ? <>Você está lendo “{book.title}”. </> : null}{season ? <>{season.title} · capítulo {chapter.number}. </> : null}Continue no seu ritmo.</p>
+        {book && <p className="aside-link"><Link className="text-link" href={`/livros/${book.slug}`}>Sobre o livro →</Link></p>}
+        <p className="aside-link"><Link className="text-link" href="/comunidade">Ir para as conversas →</Link></p>
+        {meeting && <section className="meeting-card"><span className="eyebrow">Encontro associado</span><h3>{meeting.title}</h3>{meetingDate && <p>{meetingDate}</p>}{meeting.duration_min && <p>{meeting.duration_min} minutos</p>}{meeting.status && <p className="field-hint">Status: {meeting.status}</p>}{safeMeetingUrl && <a className="text-link" href={safeMeetingUrl} target="_blank" rel="noopener noreferrer">Abrir encontro ↗</a>}</section>}
+        <div className="notice">Seu progresso e suas respostas são privados por padrão. O servidor valida permissões e gabaritos.</div>
+      </aside>
+    </div>
+  </div>;
+}
