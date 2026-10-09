@@ -1,0 +1,9 @@
+import type { Metadata } from 'next';
+import { getBooks } from '@/features/catalog/queries';
+import { BookCard } from '@/components/book-card';
+import Link from 'next/link';
+export const metadata: Metadata = { title: 'Livros', description: 'Explore histórias e leituras compartilhadas pela comunidade DIYSPUR.' };
+export default async function BooksPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q = '' } = await searchParams; const books = await getBooks(q);
+  return <section className="container"><header className="page-intro"><span className="eyebrow">A biblioteca do clube</span><h1>Uma boa história<br/><em style={{color:'var(--color-primary)'}}>chama outra.</em></h1><p>Descubra a seleção de leituras DIYSPUR e encontre sua próxima conversa favorita.</p><form className="search-form" action="/livros" method="get"><label className="sr-only" htmlFor="q">Buscar livros por título</label><input className="field" type="search" name="q" id="q" defaultValue={q} placeholder="Buscar por título…"/><button className="button button-small" type="submit">Buscar</button></form>{q && <p className="field-hint" style={{marginTop:10}}>Resultados para “{q}” · <Link className="text-link" href="/livros">Limpar busca</Link></p>}</header>{books.length ? <div className="book-grid section" style={{paddingTop:14}}>{books.map((book) => <BookCard key={book.id} book={book}/>)}</div> : <div className="empty-state"><div className="empty-state-mark" aria-hidden="true">⌕</div><h2>{q ? 'Nenhum título por aqui ainda' : 'A próxima leitura está sendo escolhida'}</h2><p>{q ? 'Tente outra busca ou confira novamente mais tarde.' : 'O catálogo do clube será atualizado em breve. Descubra enquanto isso as conversas da comunidade.'}</p><div className="empty-actions"><Link className="button button-dark button-small" href={q ? '/livros' : '/comunidade'}>{q ? 'Ver catálogo' : 'Ir para a comunidade'}</Link></div></div>}</section>;
+}

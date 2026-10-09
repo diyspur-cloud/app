@@ -1,0 +1,3 @@
+'use client';
+import { useEffect } from 'react';
+export default function ErrorPage({reset}:{error:Error & {digest?:string};reset:()=>void}){useEffect(()=>{console.error('App route error', {digest:undefined});},[]);return <section className="container section"><div className="empty-state"><span className="eyebrow">Algo saiu do roteiro</span><h1 className="display-title" style={{marginTop:16}}>Vamos tentar <em>de novo.</em></h1><p>Não foi possível carregar esta página agora. Tente novamente em instantes.</p><div className="empty-actions"><button className="button" onClick={()=>reset()}>Tentar novamente</button></div></div></section>;}
