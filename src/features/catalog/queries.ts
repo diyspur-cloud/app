@@ -39,12 +39,12 @@ export async function getBook(slug: string) {
 export async function getSeason(slug: string) {
   const client = await createServerSupabase();
   const { data: season, error } = await client.from('seasons').select('id,number,title,slug,book_id,status,description,starts_at,ends_at,cover_url').eq('slug', slug).maybeSingle();
-  if (error || !season) return null;
-  const [book, chapters] = await Promise.all([
+  if (error || !season || !['active', 'finished'].includes(season.status)) return null;
+  const [book, chapterResult] = await Promise.all([
     client.from('books').select('id,title,slug,cover_url,author_id').eq('id', season.book_id).maybeSingle(),
-    client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('season_id', season.id).order('number', { ascending: true }),
+    client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('season_id', season.id).or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`).order('number', { ascending: true }),
   ]);
-  return { season: season as Season, book: book.data, chapters: (chapters.data ?? []) as Chapter[] };
+  return { season: season as Season, book: book.data, chapters: (chapterResult.data ?? []) as Chapter[] };
 }
 
 export async function getMeetings(): Promise<Meeting[]> {
@@ -56,12 +56,34 @@ export async function getMeetings(): Promise<Meeting[]> {
 
 export async function getChapters(id: string) {
   const client = await createServerSupabase();
-  const { data, error } = await client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('id', id).maybeSingle();
-  if (error || !data) return null;
-  const [season, comments] = await Promise.all([
-    client.from('seasons').select('id,title,slug,book_id').eq('id', data.season_id).maybeSingle(),
-    client.from('v_comments_visible').select('id,chapter_id,user_id,content,is_spoiler,created_at').eq('chapter_id', id).order('created_at').limit(50),
+  const [{ data: chapter, error }, { data: claims }] = await Promise.all([
+    client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('id', id).maybeSingle(),
+    client.auth.getClaims(),
   ]);
+  if (error || !chapter || (chapter.published_at && Date.parse(chapter.published_at) > Date.now())) return null;
+  const [season, comments, progress, chapterList, meetings, questions] = await Promise.all([
+    client.from('seasons').select('id,title,slug,book_id,status').eq('id', chapter.season_id).maybeSingle(),
+    client.from('v_comments_visible').select('id,chapter_id,user_id,content,is_spoiler,is_locked,created_at').eq('chapter_id', id).order('created_at', { ascending: true }).limit(50),
+    claims?.claims?.sub ? client.from('user_progress').select('status,percent').eq('user_id', String(claims.claims.sub)).eq('chapter_id', id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    client.from('chapters').select('id,number,title,published_at').eq('season_id', chapter.season_id).or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`).order('number', { ascending: true }),
+    client.from('meetings').select('id,chapter_id,title,status,scheduled_at,duration_min,meeting_url,agenda').eq('chapter_id', id).order('scheduled_at', { ascending: false }).limit(1).maybeSingle(),
+    claims?.claims?.sub ? client.from('v_quiz_questions_public').select('id,chapter_id,position,question,options').eq('chapter_id', id).order('position', { ascending: true }).limit(50) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (!season.data || !['active', 'finished'].includes(season.data.status)) return null;
   const book = season.data ? await client.from('books').select('id,title,slug,cover_url,author_id').eq('id', season.data.book_id).maybeSingle() : { data: null };
-  return { chapter: data as Chapter, season: season.data, book: book.data, comments: comments.data ?? [] };
+  const ordered = (chapterList.data ?? []).filter((item) => !item.published_at || Date.parse(item.published_at) <= Date.now());
+  const index = ordered.findIndex((item) => item.id === chapter.id);
+  return {
+    chapter: chapter as Chapter,
+    season: season.data,
+    book: book.data,
+    comments: comments.data ?? [],
+    progress: progress.data,
+    previous: index > 0 ? ordered[index - 1] : null,
+    next: index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : null,
+    meeting: meetings.data,
+    questions: questions.data ?? [],
+    signedIn: typeof claims?.claims?.sub === 'string',
+    viewerId: typeof claims?.claims?.sub === 'string' ? claims.claims.sub : null,
+  };
 }

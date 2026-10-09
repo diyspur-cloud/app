@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
-const links = [{ href: '/livros', label: 'Explorar livros' }, { href: '/calendario', label: 'Encontros' }, { href: '/comunidade', label: 'Comunidade' }];
+const links = [{ href: '/livros', label: 'Explorar livros' }, { href: '/calendario', label: 'Encontros' }, { href: '/comunidade', label: 'Comunidade' }, { href: '/votacao', label: 'Votação' }];
 
 export async function SiteHeader() {
   let signedIn = false;
