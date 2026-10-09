@@ -570,13 +570,20 @@ export type Database = {
           audiobook_url: string | null
           author_id: string
           cover_url: string | null
+          content_rating: string | null
           created_at: string
+          depth_mm: number | null
           ebook_url: string | null
+          edition_number: number | null
           embedding: string | null
+          format: string | null
+          height_mm: number | null
           id: string
           isbn13: string | null
           language: string | null
+          publication_date: string | null
           publication_year: number | null
+          publisher: string | null
           slug: string
           synopsis: string | null
           tags: string[] | null
@@ -584,6 +591,8 @@ export type Database = {
           total_chapters: number | null
           total_pages: number | null
           updated_at: string
+          translator: string | null
+          width_mm: number | null
         }
         Insert: {
           amazon_affiliate?: string | null
@@ -591,13 +600,20 @@ export type Database = {
           audiobook_url?: string | null
           author_id: string
           cover_url?: string | null
+          content_rating?: string | null
           created_at?: string
+          depth_mm?: number | null
           ebook_url?: string | null
+          edition_number?: number | null
           embedding?: string | null
+          format?: string | null
+          height_mm?: number | null
           id?: string
           isbn13?: string | null
           language?: string | null
+          publication_date?: string | null
           publication_year?: number | null
+          publisher?: string | null
           slug: string
           synopsis?: string | null
           tags?: string[] | null
@@ -605,6 +621,8 @@ export type Database = {
           total_chapters?: number | null
           total_pages?: number | null
           updated_at?: string
+          translator?: string | null
+          width_mm?: number | null
         }
         Update: {
           amazon_affiliate?: string | null
@@ -612,13 +630,20 @@ export type Database = {
           audiobook_url?: string | null
           author_id?: string
           cover_url?: string | null
+          content_rating?: string | null
           created_at?: string
+          depth_mm?: number | null
           ebook_url?: string | null
+          edition_number?: number | null
           embedding?: string | null
+          format?: string | null
+          height_mm?: number | null
           id?: string
           isbn13?: string | null
           language?: string | null
+          publication_date?: string | null
           publication_year?: number | null
+          publisher?: string | null
           slug?: string
           synopsis?: string | null
           tags?: string[] | null
@@ -626,6 +651,8 @@ export type Database = {
           total_chapters?: number | null
           total_pages?: number | null
           updated_at?: string
+          translator?: string | null
+          width_mm?: number | null
         }
         Relationships: [
           {

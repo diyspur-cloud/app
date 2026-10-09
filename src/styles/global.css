@@ -109,8 +109,16 @@ img,svg{max-width:100%;display:block}
 .book-detail-cover{aspect-ratio:2/2.9;display:grid;place-items:center;overflow:hidden;border-radius:var(--radius-lg);background:linear-gradient(145deg,#284137,#121a16);box-shadow:var(--shadow-card)}
 .book-detail h1{margin:12px 0 8px;font:400 clamp(40px,6vw,60px)/1.03 var(--font-serif);letter-spacing:-.05em}
 .book-detail .author{color:var(--color-muted)}
+.book-detail .author-bio{max-width:700px;margin:8px 0;color:var(--color-subtle);font-size:13px}
+.author-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.author-links a{color:var(--color-primary);font-size:12px;font-weight:600}
+.author-links a:hover{text-decoration:underline;text-underline-offset:4px}
 .book-detail .synopsis{max-width:700px;margin:21px 0;color:var(--color-muted)}
 .detail-pills{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.book-edition-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:20px 0 24px;max-width:850px}
+.book-edition-details>div{min-width:0;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:rgb(255 255 255 / 2.5%)}
+.book-edition-details dt{margin-bottom:4px;color:var(--color-subtle);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.book-edition-details dd{margin:0;color:var(--color-fg);font-size:13px;overflow-wrap:anywhere}
 .season-list,.meeting-list,.timeline{display:grid;gap:12px}
 .season-row,.meeting-row,.timeline-row,.activity-row{padding:18px 20px;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--color-surface);display:flex;align-items:center;justify-content:space-between;gap:18px}
 .season-row h3,.meeting-row h3,.timeline-row h3{font:500 17px var(--font-serif)}

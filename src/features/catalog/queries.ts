@@ -2,9 +2,13 @@ import { createServerSupabase } from '@/lib/supabase/clients';
 
 export type Book = {
   id: string; title: string; slug: string; author_id: string; cover_url: string | null;
+  isbn13: string | null; language: string | null;
   synopsis: string | null; total_chapters: number | null; total_pages: number | null;
   publication_year: number | null; tags: string[] | null; amazon_url: string | null;
-  authors?: { name: string } | null;
+  publisher: string | null; translator: string | null; publication_date: string | null;
+  content_rating: string | null; edition_number: number | null; format: string | null;
+  width_mm: number | null; height_mm: number | null; depth_mm: number | null;
+  authors?: { name: string; bio?: string | null; website_url?: string | null; instagram?: string | null } | null;
 };
 export type Season = { id: string; number: number; title: string; slug: string; book_id: string; status: string; description: string | null; starts_at: string | null; ends_at: string | null; cover_url: string | null };
 export type Chapter = { id: string; season_id: string; number: number; title: string; reading_range: string | null; youtube_url: string | null; summary: string | null; published_at: string | null };
@@ -12,7 +16,7 @@ export type Meeting = { id: string; chapter_id: string; title: string; status: s
 
 export async function getBooks(search?: string): Promise<Book[]> {
   const client = await createServerSupabase();
-  let query = client.from('books').select('id,title,slug,author_id,cover_url,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url').order('created_at', { ascending: false }).limit(36);
+  let query = client.from('books').select('id,title,slug,author_id,cover_url,isbn13,language,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url,publisher,translator,publication_date,content_rating,edition_number,format,width_mm,height_mm,depth_mm').order('created_at', { ascending: false }).limit(36);
   const term = search?.trim().replace(/[%,()]/g, '');
   if (term) query = query.ilike('title', `%${term}%`);
   const { data, error } = await query;
@@ -26,11 +30,11 @@ export async function getBooks(search?: string): Promise<Book[]> {
 
 export async function getBook(slug: string) {
   const client = await createServerSupabase();
-  const { data, error } = await client.from('books').select('id,title,slug,author_id,cover_url,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url').eq('slug', slug).maybeSingle();
+  const { data, error } = await client.from('books').select('id,title,slug,author_id,cover_url,isbn13,language,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url,publisher,translator,publication_date,content_rating,edition_number,format,width_mm,height_mm,depth_mm').eq('slug', slug).maybeSingle();
   if (error || !data) return null;
   const book = data as Book;
   const [author, seasons] = await Promise.all([
-    client.from('authors').select('name').eq('id', book.author_id).maybeSingle(),
+    client.from('authors').select('name,bio,website_url,instagram').eq('id', book.author_id).maybeSingle(),
     client.from('seasons').select('id,number,title,slug,book_id,status,description,starts_at,ends_at,cover_url').eq('book_id', book.id).order('number', { ascending: true }),
   ]);
   return { ...book, authors: author.data, seasons: (seasons.data ?? []) as Season[] };
