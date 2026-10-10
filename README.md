@@ -300,8 +300,58 @@ O deploy do frontend não aplica migrations. Migrations e Edge Functions pertenc
 - O catálogo e o sitemap usam limites de consulta; paginação/cursor completo deve ser tratado antes de operar em escala grande.
 - OAuth social, newsletter, pagamentos/Stripe, matching e recomendações dependem de credenciais, providers e aceite operacional externo; o frontend não presume que essas integrações estejam habilitadas.
 - O conteúdo editorial deve ser revisado antes de expandir quizzes, prompts, avisos ou temporadas.
-- A criação/gestão completa de clubes e algumas jornadas de leituras compartilhadas dependem dos contratos e policies correspondentes do backend.
+- Clubes básicos e diário privado estão implementados; convites/transferência de titularidade, edição completa de listas e jornadas avançadas de leituras compartilhadas ainda dependem de contratos adicionais.
 
 ## Licença e contato
 
 Este repositório é privado/gerenciado pela organização DIYSPUR. Para alterações de produto, schema ou publicação, use os repositórios oficiais e preserve as regras de segurança descritas acima.
+
+## Entrega editorial full-stack — 2026-10-10
+
+Esta seção registra o estado operacional da entrega implementada no produto e não substitui o histórico de migrations. Os PRs da implementação foram integrados em `main`, a migration `20261010120000_editorial_product_lifecycle.sql` foi aplicada ao projeto Supabase `xjhehhfhhoomblcggjpk` e o push para `main` aciona o deploy automático do projeto Vercel `diyspur`.
+
+### Clubes de leitura
+
+As rotas `/clubes`, `/clubes/novo` e `/clubes/[slug]` permitem descobrir clubes públicos, criar um clube autenticado e consultar o detalhe autorizado. A criação usa `requestId` como chave de idempotência. O titular é derivado de `auth.uid()` no servidor, não do formulário. Clubes privados não podem ser ingressados pelo RPC público de entrada: a jornada de convite permanece explicitamente separada para evitar que um slug funcione como autorização.
+
+A edição usa `version` e bloqueio transacional para rejeitar gravações concorrentes. O titular não pode sair do próprio clube; o contrato exige arquivamento ou futura transferência de titularidade. A leitura de memberships é protegida por RLS e pelo helper privado não recursivo `private.can_view_user_club`.
+
+### Diário privado
+
+A rota `/diario` lista somente registros autorizados para a sessão. O formulário valida UUID do livro, data ISO, corpo obrigatório, páginas, percentual, minutos e spoiler. A action deriva `user_id` da sessão e grava `visibility = 'private'`. O banco também valida páginas, duração e compartilhamento: um registro `visibility = 'club'` sem `shared_club_id` não é exposto a ninguém além do titular.
+
+O diário não transforma texto em XP, conclusão ou recomendação. Anexos continuam subordinados ao bucket privado e às policies de Storage existentes. A publicação de uma entrada exige uma decisão editorial posterior, não apenas uma flag no navegador.
+
+### Listas e concorrência
+
+`reading_lists.version` e a RPC `reorder_reading_list(list, version, item_ids)` formam o contrato de ordenação atômica. A função bloqueia a lista, verifica a versão, exige exatamente todos os itens pertencentes à lista e incrementa a versão em uma única transação. IDs de itens de outra lista ou ordens incompletas são rejeitados.
+
+### Contrato entre frontend e Supabase
+
+Quando uma migration é aplicada, o fluxo obrigatório é: criar migration incremental no repositório `db`; aplicar em staging/produção controladamente; gerar `src/types/database.ts`; atualizar queries/actions; executar lint, typecheck, unitários, build e E2E; só então publicar no Vercel. O snapshot atual foi gerado diretamente do projeto remoto depois da migration e inclui as colunas `version`, `archived_at` e `shared_club_id`, a tabela de convites e as RPCs novas.
+
+### Deploy Vercel
+
+O projeto Vercel se chama `diyspur` e está conectado ao repositório `diyspur-cloud/app`. O deploy de produção é acionado pelo push em `main`; o Vercel não executa migrations. Depois de cada deploy, valide:
+
+```bash
+curl -fsS https://diyspur.vercel.app/ >/dev/null
+curl -fsS https://diyspur.vercel.app/robots.txt
+curl -fsS https://diyspur.vercel.app/sitemap.xml
+PLAYWRIGHT_BASE_URL=https://diyspur.vercel.app npm run test:e2e
+```
+
+As variáveis obrigatórias de produção são `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_SITE_URL=https://diyspur.vercel.app`. A chave `service_role` nunca deve ser configurada como variável `NEXT_PUBLIC_*` nem enviada ao bundle.
+
+### Checklist de release
+
+| Gate | Evidência esperada |
+|---|---|
+| Código em `main` | `git log origin/main` contém o merge do PR |
+| Schema remoto | migration aparece em `list_migrations` com versão `20261010030848` |
+| Contrato tipado | `src/types/database.ts` gerado após o apply |
+| Qualidade | lint, typecheck, unitários, build e E2E verdes |
+| Produção | domínio Vercel responde 200 e rotas públicas carregam |
+| Segurança | RLS/RPC/Auth testados com anon, titular, outro usuário e admin |
+
+O Supabase ainda pode apresentar advisories preexistentes, como extensions no schema `public`, funções de acesso de capítulos marcadas como `SECURITY DEFINER`, proteção de senha vazada desabilitada e índices não utilizados. Esses avisos não foram silenciosamente tratados nesta entrega; devem ser avaliados como hardening separado.

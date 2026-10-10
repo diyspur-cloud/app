@@ -569,8 +569,8 @@ export type Database = {
           amazon_url: string | null
           audiobook_url: string | null
           author_id: string
-          cover_url: string | null
           content_rating: string | null
+          cover_url: string | null
           created_at: string
           depth_mm: number | null
           ebook_url: string | null
@@ -590,8 +590,8 @@ export type Database = {
           title: string
           total_chapters: number | null
           total_pages: number | null
-          updated_at: string
           translator: string | null
+          updated_at: string
           width_mm: number | null
         }
         Insert: {
@@ -599,8 +599,8 @@ export type Database = {
           amazon_url?: string | null
           audiobook_url?: string | null
           author_id: string
-          cover_url?: string | null
           content_rating?: string | null
+          cover_url?: string | null
           created_at?: string
           depth_mm?: number | null
           ebook_url?: string | null
@@ -620,8 +620,8 @@ export type Database = {
           title: string
           total_chapters?: number | null
           total_pages?: number | null
-          updated_at?: string
           translator?: string | null
+          updated_at?: string
           width_mm?: number | null
         }
         Update: {
@@ -629,8 +629,8 @@ export type Database = {
           amazon_url?: string | null
           audiobook_url?: string | null
           author_id?: string
-          cover_url?: string | null
           content_rating?: string | null
+          cover_url?: string | null
           created_at?: string
           depth_mm?: number | null
           ebook_url?: string | null
@@ -650,8 +650,8 @@ export type Database = {
           title?: string
           total_chapters?: number | null
           total_pages?: number | null
-          updated_at?: string
           translator?: string | null
+          updated_at?: string
           width_mm?: number | null
         }
         Relationships: [
@@ -3054,9 +3054,11 @@ export type Database = {
           page_to: number | null
           percent_at: number | null
           season_id: string | null
+          shared_club_id: string | null
           title: string | null
           updated_at: string
           user_id: string
+          version: number
           visibility: Database["public"]["Enums"]["journal_visibility"]
         }
         Insert: {
@@ -3075,9 +3077,11 @@ export type Database = {
           page_to?: number | null
           percent_at?: number | null
           season_id?: string | null
+          shared_club_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
+          version?: number
           visibility?: Database["public"]["Enums"]["journal_visibility"]
         }
         Update: {
@@ -3096,9 +3100,11 @@ export type Database = {
           page_to?: number | null
           percent_at?: number | null
           season_id?: string | null
+          shared_club_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
+          version?: number
           visibility?: Database["public"]["Enums"]["journal_visibility"]
         }
         Relationships: [
@@ -3129,6 +3135,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_journal_entries_shared_club_id_fkey"
+            columns: ["shared_club_id"]
+            isOneToOne: false
+            referencedRelation: "user_clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_journal_entries_shared_club_id_fkey"
+            columns: ["shared_club_id"]
+            isOneToOne: false
+            referencedRelation: "v_club_progress_panel"
+            referencedColumns: ["club_id"]
           },
           {
             foreignKeyName: "reading_journal_entries_user_id_fkey"
@@ -3356,6 +3376,7 @@ export type Database = {
           theme: string | null
           title: string
           updated_at: string
+          version: number
           visibility: Database["public"]["Enums"]["reading_list_visibility"]
         }
         Insert: {
@@ -3371,6 +3392,7 @@ export type Database = {
           theme?: string | null
           title: string
           updated_at?: string
+          version?: number
           visibility?: Database["public"]["Enums"]["reading_list_visibility"]
         }
         Update: {
@@ -3386,6 +3408,7 @@ export type Database = {
           theme?: string | null
           title?: string
           updated_at?: string
+          version?: number
           visibility?: Database["public"]["Enums"]["reading_list_visibility"]
         }
         Relationships: [
@@ -3620,6 +3643,96 @@ export type Database = {
           },
         ]
       }
+      user_club_invitations: {
+        Row: {
+          accepted_at: string | null
+          club_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string
+          invited_user_id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          club_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          invited_by: string
+          invited_user_id: string
+          revoked_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          club_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          invited_user_id?: string
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_club_invitations_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "user_clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "v_club_progress_panel"
+            referencedColumns: ["club_id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_user_reading_overview"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_user_id_fkey"
+            columns: ["invited_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_user_id_fkey"
+            columns: ["invited_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_club_invitations_invited_user_id_fkey"
+            columns: ["invited_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_reading_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       user_club_members: {
         Row: {
           club_id: string
@@ -3679,6 +3792,7 @@ export type Database = {
       }
       user_clubs: {
         Row: {
+          archived_at: string | null
           created_at: string
           current_book_id: string | null
           current_ends_at: string | null
@@ -3690,8 +3804,10 @@ export type Database = {
           name: string
           owner_id: string
           slug: string
+          version: number
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           current_book_id?: string | null
           current_ends_at?: string | null
@@ -3703,8 +3819,10 @@ export type Database = {
           name: string
           owner_id: string
           slug: string
+          version?: number
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           current_book_id?: string | null
           current_ends_at?: string | null
@@ -3716,6 +3834,7 @@ export type Database = {
           name?: string
           owner_id?: string
           slug?: string
+          version?: number
         }
         Relationships: [
           {
@@ -4504,6 +4623,19 @@ export type Database = {
       }
     }
     Views: {
+      mv_book_community_stats: {
+        Row: {
+          avg_rating: number | null
+          avg_spice_level: number | null
+          book_id: string | null
+          mood_percent: Json | null
+          pace_percent: Json | null
+          plot_vs_character_avg: number | null
+          ratings_count: number | null
+          sample_size: number | null
+        }
+        Relationships: []
+      }
       v_book_community_stats: {
         Row: {
           avg_rating: number | null
@@ -4849,9 +4981,22 @@ export type Database = {
         Args: { p_chapter: string; p_user: string }
         Returns: boolean
       }
+      create_user_club: {
+        Args: {
+          p_description: string
+          p_name: string
+          p_private: boolean
+          p_request_id: string
+        }
+        Returns: string
+      }
       deliver_meeting_reminder: {
         Args: { p_meeting: string; p_user: string; p_window?: string }
         Returns: boolean
+      }
+      evaluate_user_achievements: {
+        Args: { p_user: string }
+        Returns: undefined
       }
       finish_newsletter_dispatch: {
         Args: { p_audience_key: string; p_issue: string; p_success: boolean }
@@ -4869,6 +5014,19 @@ export type Database = {
       generate_milestones_for_season: {
         Args: { p_season: string }
         Returns: undefined
+      }
+      get_chapter_access: {
+        Args: { p_chapter: string }
+        Returns: {
+          can_open: boolean
+          chapter_id: string
+          chapter_number: number
+          chapter_title: string
+          requires_quiz: boolean
+          season_id: string
+          season_slug: string
+          season_title: string
+        }[]
       }
       get_my_profile_private: {
         Args: never
@@ -4899,19 +5057,6 @@ export type Database = {
           shared_moods: Database["public"]["Enums"]["mood_kind"][]
         }[]
       }
-      get_chapter_access: {
-        Args: { p_chapter: string }
-        Returns: {
-          can_open: boolean
-          chapter_id: string
-          chapter_number: number
-          chapter_title: string
-          requires_quiz: boolean
-          season_id: string
-          season_slug: string
-          season_title: string
-        }[]
-      }
       get_season_chapter_access: {
         Args: { p_season: string }
         Returns: {
@@ -4919,12 +5064,14 @@ export type Database = {
           chapter_id: string
           chapter_number: number
           chapter_title: string
-          published_at: string | null
-          reading_range: string | null
+          published_at: string
+          reading_range: string
           requires_quiz: boolean
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      join_user_club: { Args: { p_club: string }; Returns: boolean }
+      leave_user_club: { Args: { p_club: string }; Returns: boolean }
       link_stripe_customer: {
         Args: { p_customer_id: string; p_user: string }
         Returns: undefined
@@ -4973,6 +5120,10 @@ export type Database = {
         }[]
       }
       refresh_book_mood_stats: { Args: { p_book: string }; Returns: undefined }
+      reorder_reading_list: {
+        Args: { p_item_ids: string[]; p_list: string; p_version: number }
+        Returns: number
+      }
       set_my_lgpd_consent: { Args: { p_consent: boolean }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
@@ -4986,6 +5137,16 @@ export type Database = {
         Returns: boolean
       }
       unaccent: { Args: { "": string }; Returns: string }
+      update_user_club: {
+        Args: {
+          p_club: string
+          p_description: string
+          p_name: string
+          p_private: boolean
+          p_version: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       activity_kind:
@@ -5089,13 +5250,13 @@ export type Database = {
         | "incomplete"
       user_role: "reader" | "ambassador" | "editor" | "admin"
       xp_source:
-        | "achievement"
         | "join_meeting"
         | "finish_chapter"
         | "comment"
         | "quiz_answer"
         | "finish_book"
         | "streak_bonus"
+        | "achievement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5333,13 +5494,13 @@ export const Constants = {
       ],
       user_role: ["reader", "ambassador", "editor", "admin"],
       xp_source: [
-        "achievement",
         "join_meeting",
         "finish_chapter",
         "comment",
         "quiz_answer",
         "finish_book",
         "streak_bonus",
+        "achievement",
       ],
     },
   },
