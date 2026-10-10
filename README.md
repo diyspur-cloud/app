@@ -1,265 +1,307 @@
-# DIYSPUR — Clube de leitura
+# DIYSPUR — frontend do clube de leitura
 
-Aplicação web do clube DIYSPUR: catálogo de livros, temporadas e capítulos, agenda de encontros e espaços de comunidade. O frontend usa **Next.js App Router**, **React**, **TypeScript** e **Supabase**. A interface está em pt-BR e segue um tema editorial escuro com verde-sálvia, superfícies de floresta, tipografia sistêmica e geometria CSS.
+Frontend web do DIYSPUR, um clube de leitura em português do Brasil para descobrir livros, acompanhar temporadas e capítulos, participar de quizzes, conversar sem spoilers, responder enquetes, acompanhar encontros e organizar o próprio ritmo de leitura.
 
-> Este repositório contém o frontend. O schema, as políticas e as funções backend são mantidos separadamente em [`diyspur-cloud/db`](https://github.com/diyspur-cloud/db). O frontend não cria nem migra schema.
+- **Produção:** <https://diyspur.vercel.app/>
+- **Repositório:** <https://github.com/diyspur-cloud/app>
+- **Backend e banco:** <https://github.com/diyspur-cloud/db>
+- **Stack:** Next.js App Router, React, TypeScript, Supabase SSR e CSS próprio.
+
+> O frontend não contém a chave `service_role`, não executa DDL e não substitui as policies/RPCs do repositório backend. Toda identidade, score, XP, papel administrativo e acesso a conteúdo protegido precisa ser confirmado no servidor/Supabase.
 
 ## Índice
 
-- [Estado e escopo](#estado-e-escopo)
-- [Stack](#stack)
-- [Arquitetura e organização](#arquitetura-e-organização)
-- [Rotas e experiência](#rotas-e-experiência)
-- [Integração Supabase e modelo de dados](#integração-supabase-e-modelo-de-dados)
-- [Autenticação e sessão](#autenticação-e-sessão)
-- [Design system](#design-system)
+- [Estado atual](#estado-atual)
+- [Funcionalidades](#funcionalidades)
+- [Arquitetura](#arquitetura)
+- [Rotas](#rotas)
+- [Supabase e autenticação](#supabase-e-autenticação)
 - [Configuração local](#configuração-local)
-- [Segurança e privacidade](#segurança-e-privacidade)
-- [Qualidade, comandos e testes](#qualidade-comandos-e-testes)
-- [Build e deploy](#build-e-deploy)
-- [Limites conhecidos e próximos passos](#limites-conhecidos-e-próximos-passos)
+- [Comandos](#comandos)
+- [Testes e critérios de qualidade](#testes-e-critérios-de-qualidade)
+- [Deploy no Vercel](#deploy-no-vercel)
+- [Segurança](#segurança)
+- [Como contribuir](#como-contribuir)
+- [Limites conhecidos](#limites-conhecidos)
 
-## Estado e escopo
+## Estado atual
 
-A aplicação está implementada como um **frontend funcional e integrado em modo de leitura**. Páginas públicas consultam tabelas e uma view do Supabase; o catálogo usa os registros presentes, sem criar conteúdo fictício, e mostra estados vazios claros quando não há dados. Login/cadastro por email, link mágico, callback, logout e proteção de rotas estão implementados no cliente e no servidor.
+A aplicação está publicada e integrada ao projeto Supabase configurado no backend. O ciclo editorial Verity usado na auditoria possui livro, temporada, capítulos, quiz, pergunta do anfitrião, encontro, votação encerrada, avisos de conteúdo e desafio de leitura.
 
-As gravações na base não foram exercitadas contra produção. Recursos que exigem ações autenticadas (por exemplo, comentar, registrar progresso, responder quizzes ou administrar conteúdo) não devem ser considerados completos enquanto não houver implementação validada em ambiente de staging e/ou contas de teste dedicadas.
+Os principais fluxos autenticados foram exercitados com uma conta QA dedicada:
 
-**Leitura integrada observada em 2026-10-09:** consultas anônimas de leitura responderam para `books`, `authors`, `chapters` e `v_comments_visible`; o snapshot retornou 1 livro, 1 autor, 5 capítulos e 0 comentários visíveis. Auth por email estava habilitado e provedores Google/GitHub estavam desabilitados. São observações daquele momento, não pressupostos fixos de interface.
+- cadastro, login, logout e recuperação de senha;
+- quiz com validação server-side, retry e desbloqueio do capítulo seguinte;
+- progresso intermediário e conclusão de capítulo;
+- XP, conquistas e ranking;
+- resposta e troca da resposta na pergunta do anfitrião;
+- RSVP de encontro;
+- comentários de capítulo e comentários sincronizados com timestamp;
+- listas privadas e inclusão de livro;
+- inscrição idempotente em desafio;
+- perfil, histórico, médias de quiz e badges;
+- bloqueio server-side do painel administrativo.
 
-## Stack
+Não coloque credenciais QA, senhas, tokens ou variáveis locais neste repositório.
 
-| Área | Tecnologia | Versão pinada |
-|---|---|---:|
-| Framework e roteamento | Next.js App Router | 16.4.0 |
-| UI | React / React DOM | 19.3.0 |
-| Linguagem e verificação | TypeScript (`strict`) | 5.9.3 |
-| Supabase server/browser | `@supabase/ssr` | 0.12.7 |
-| Supabase client | `@supabase/supabase-js` | 2.117.3 |
-| Validação de formulários | Zod | 4.1.12 |
-| Lint | ESLint + `typescript-eslint` flat config | 9.39.1 / 8.71.1 |
-| Unit tests | Vitest | 4.1.11 |
-| Navegador E2E | Playwright | 1.56.1 |
-| Estilos | CSS global + custom properties; sem Tailwind/UI kit | — |
+## Funcionalidades
 
-As versões declaradas são fixas no `package.json`; `package-lock.json` deve ser atualizado junto a mudanças intencionais de dependências. Não há Prettier, Biome, Tailwind, shadcn/ui ou Material UI configurados.
+### Catálogo e leitura
 
-## Arquitetura e organização
+- catálogo público com busca por título;
+- ficha de livro com autor, edição, metadados, avisos de conteúdo e temporadas;
+- timeline de capítulos com estados disponíveis/bloqueados;
+- proteção de capítulos futuros e gate por quiz;
+- player/fachada YouTube com allowlist de hosts oficiais;
+- progresso percentual persistido e conclusão server-side;
+- próximo capítulo e retorno ao ponto da leitura;
+- horários de encontros exibidos explicitamente em `America/Sao_Paulo`.
+
+### Comunidade e gamificação
+
+- comentários de capítulo com suporte a spoiler;
+- comentários sincronizados por segundo do vídeo;
+- contagem agregada de leitores por trecho;
+- feed público com contexto do capítulo;
+- quiz com score validado no backend;
+- pergunta do anfitrião com três respostas, resultado agregado e troca de voto;
+- enquetes abertas e resultados de enquetes encerradas;
+- XP idempotente para atividades elegíveis;
+- badges avaliadas pelo banco e ranking por XP;
+- desafio anual com inscrição privada e idempotente;
+- milestones da temporada.
+
+### Conta e organização
+
+- cadastro e login por email/senha;
+- magic link com destino local preservado;
+- recuperação e atualização de senha;
+- redirects locais protegidos contra open redirect;
+- perfil e histórico privados;
+- listas privadas: criação e adição de livros;
+- RSVP e exportação ICS de encontros;
+- redirect afiliado Amazon server-side com allowlist e registro mínimo de clique.
+
+## Arquitetura
 
 ```text
-.
-├── src/
-│   ├── app/                     # rotas, layouts, metadata e Route Handlers
-│   │   ├── api/ics/[meetingId]/ # exportação de encontro como calendário .ics
-│   │   ├── auth/                 # troca de code e logout
-│   │   └── ...                  # páginas públicas/privadas
-│   ├── components/              # UI reutilizável e componentes client pontuais
-│   ├── features/catalog/         # consultas e tipos de domínio do catálogo
-│   ├── lib/                      # clientes Supabase e helpers puros
-│   ├── styles/                   # tokens.css e global.css
-│   └── types/database.ts         # tipos gerados/sincronizados com backend db
-├── proxy.ts                     # integração do proxy Next 16 com auth SSR
-├── tests/unit/                  # Vitest
-├── tests/e2e/                   # Playwright
-├── eslint.config.mjs
-├── next.config.mjs
-├── playwright.config.ts
-├── tsconfig.json
-└── vitest.config.ts
+src/
+├── app/                         # App Router, páginas, metadata e Route Handlers
+│   ├── api/affiliate/[slug]/    # registra clique e redireciona para Amazon allowlisted
+│   ├── api/ics/[meetingId]/     # exporta encontro como text/calendar
+│   ├── auth/                    # callback e logout
+│   ├── capitulos/[id]/          # leitura, quiz, progresso e conversas
+│   ├── desafios/                # consulta e inscrição em desafios
+│   ├── listas/                  # listas privadas
+│   ├── livros/                  # catálogo e fichas
+│   └── ...                      # calendário, perfil, ranking, votação etc.
+├── components/                 # componentes reutilizáveis e componentes client
+├── features/                   # queries, actions e schemas por domínio
+│   ├── catalog/
+│   ├── chapters/
+│   ├── lists/
+│   ├── meetings/
+│   ├── polls/
+│   ├── profile/
+│   └── video-comments/
+├── lib/
+│   ├── supabase/               # clients SSR/browser e helpers
+│   └── safe-redirect.ts        # validação de destino local
+├── styles/                     # tokens e CSS global
+├── types/database.ts           # contrato TypeScript sincronizado com o backend
+└── proxy.ts                    # sincronização SSR de cookies de sessão
+
+tests/
+├── unit/                       # Vitest
+└── e2e/                        # Playwright
 ```
 
-### Fronteira Server/Client Components
+### Server Components, Client Components e Server Actions
 
-- Por padrão, módulos em `src/app/**` são **Server Components**. Busque dados públicos no servidor e envie para a UI apenas os campos que a página usa.
-- Use `'use client'` somente quando a interação exigir estado, eventos de browser ou API client-side. No momento, formulário de auth e fachada do player são exemplos.
-- `src/lib/supabase/clients.ts` importa `server-only`, lê cookies por request e cria o client SSR. Não importe esse módulo de componentes Client.
-- `src/lib/supabase/browser.ts` é o factory exclusivo do browser. Não o use para verificar autorização de servidor.
-- O alias `@/*` aponta para `src/*`. Rotas dinâmicas seguem as APIs assíncronas do App Router/Next 16 (`params` e `searchParams` como `Promise`).
-- `src/features/catalog/queries.ts` centraliza as consultas Supabase e os tipos de domínio (`Book`, `Season`, `Chapter`, `Meeting`); páginas não devem duplicar essas queries.
+- páginas e queries de leitura são Server Components por padrão;
+- componentes Client existem apenas quando precisam de estado, eventos ou APIs do browser;
+- Server Actions derivam `user_id` de claims autenticadas e nunca aceitam identidade/role do formulário;
+- queries selecionam colunas explícitas e usam limites estáveis;
+- mutações são protegidas simultaneamente por validação server-side e RLS.
 
-### Convenção de nomes
-
-- Componentes e tipos React: `PascalCase` (`BookCard`, `Book`).
-- Variáveis, funções e hooks: `camelCase` (`getBook`, `createServerSupabase`).
-- Arquivos de componentes, utilities e features: `kebab-case`; nomes convencionais do App Router ficam `page.tsx`, `layout.tsx`, `route.ts`, `loading.tsx`.
-- Rotas e classes CSS: segmentos e classes semânticos `kebab-case` (`/calendario`, `.book-card`).
-- Nomes de colunas/objetos de banco respeitam o schema existente; o backend pode usar `snake_case`.
-
-## Rotas e experiência
+## Rotas
 
 | Rota | Acesso | Responsabilidade |
 |---|---|---|
-| `/` | Público | Home editorial; destaques de livros e próximos encontros carregados do backend; empty state real quando necessário. |
-| `/livros` | Público | Catálogo; filtro por título via query `q`; até 36 livros por consulta. |
-| `/livros/[slug]` | Público | Detalhe de livro, autor, metadados e temporadas. |
-| `/temporadas/[slug]` | Público | Uma temporada e a timeline ordenada de capítulos. |
-| `/capitulos/[id]` | Público | Detalhe/resumo do capítulo, vídeo sob demanda e comentários visíveis em modo leitura. |
-| `/calendario` | Público | Encontros futuros e links para exportação ICS. |
-| `/comunidade` | Público | Feed de comentários visíveis; não publica comentários. |
-| `/entrar`, `/cadastro` | Público | Email/senha e link mágico; telas marcadas `noindex`. |
-| `/auth/callback` | Callback público | Troca `code` do Supabase por sessão e retorno somente para caminho local. |
-| `/perfil` | Privado | Leitura do perfil associado ao `sub` validado na sessão. |
-| `/historico`, `/desafios`, `/ranking`, `/notificacoes` | Privado | Estruturas-base do espaço do membro; não possuem ainda todo o comportamento de produto. |
-| `/admin` | Privado e restrito | Faz verificação de role `admin` consultando o perfil no servidor; CRUD editorial não está implementado. |
-| `/api/ics/[meetingId]` | Leitura pública | Busca evento existente e devolve `text/calendar` com dados escapados. |
-| `/privacidade`, `/termos` | Público | Informações do produto. |
-| `/robots.txt`, `/sitemap.xml`, `/icon.svg` | Público | SEO técnico, URL base `NEXT_PUBLIC_SITE_URL` e favicon. |
+| `/` | Público | Home editorial, destaques e próximos encontros. |
+| `/livros` | Público | Catálogo e busca por título. |
+| `/livros/[slug]` | Público | Ficha do livro, avisos, temporadas e listas do leitor autenticado. |
+| `/temporadas/[slug]` | Público | Temporada, milestones e capítulos disponíveis/bloqueados. |
+| `/capitulos/[id]` | Público/autenticado | Leitura, vídeo, quiz, progresso, comentários e pergunta do anfitrião. |
+| `/calendario` | Público/autenticado | Encontros, status, RSVP e exportação ICS. |
+| `/comunidade` | Público | Feed de comentários visíveis e contexto editorial. |
+| `/votacao` | Público/autenticado | Votação aberta e resultados encerrados. |
+| `/desafios` | Privado | Desafios publicados e inscrição do leitor. |
+| `/listas` | Privado | Listas privadas do leitor. |
+| `/perfil` | Privado | Perfil, XP, médias, badges e atividade. |
+| `/historico` | Privado | Progresso e tentativas recentes. |
+| `/ranking` | Privado | Ranking da temporada por XP. |
+| `/notificacoes` | Privado | Notificações do leitor. |
+| `/leituras-compartilhadas` | Privado | Área de leituras compartilhadas disponível no contrato atual. |
+| `/admin` | Privado/admin | Área restrita por autorização server-side. |
+| `/entrar`, `/cadastro` | Público | Autenticação; páginas `noindex`. |
+| `/recuperar-senha`, `/atualizar-senha` | Público autenticado conforme etapa | Recuperação de senha. |
+| `/api/affiliate/[slug]` | Público | Valida livro, registra clique e redireciona. |
+| `/api/ics/[meetingId]` | Público | Retorna evento ICS de encontro existente. |
+| `/robots.txt`, `/sitemap.xml` | Público | SEO técnico com domínio canônico. |
 
-Rotas privadas também são protegidas nas páginas de destino; middleware/proxy sozinho não é a única fronteira de autorização. A rota genérica `src/app/[memberPage]` atualmente restringe as quatro páginas de membro nomeadas acima e retorna 404 para outras.
+## Supabase e autenticação
 
-## Integração Supabase e modelo de dados
+O frontend usa duas fábricas de cliente:
 
-A fonte de verdade é o projeto Supabase DIYSPUR definido por `NEXT_PUBLIC_SUPABASE_URL`. O schema tipado em `src/types/database.ts` acompanha as definições do repositório `db`; ao mudar backend/schema, regenere/sincronize os tipos a partir do repositório backend — não edite o snapshot gerado manualmente.
+- `src/lib/supabase/clients.ts`: Server Components, Server Actions e Route Handlers; lê cookies da requisição;
+- `src/lib/supabase/browser.ts`: somente componentes Client e eventos do browser.
 
-### Consultas atualmente implementadas
+O contrato tipado em `src/types/database.ts` acompanha as tabelas, views, funções e enums do repositório [`diyspur-cloud/db`](https://github.com/diyspur-cloud/db). Quando o schema mudar:
 
-| Função | Fonte e comportamento |
-|---|---|
-| `getBooks(search?)` | `books`, ordena por `created_at DESC`, limita 36, filtra opcionalmente `title ILIKE`, busca nomes em `authors` e associa no servidor. |
-| `getBook(slug)` | Lê um `books` por `slug`, seu `authors.name` e `seasons` por `book_id`. Retorna `null` quando não encontra. |
-| `getSeason(slug)` | Busca `seasons`; em paralelo consulta livro relacionado e `chapters`, ordenados por número. |
-| `getMeetings()` | Consulta `meetings` com `scheduled_at >= now`, ordem crescente e limite 20. |
-| `getChapters(id)` | Busca capítulo, temporada/livro relacionados e até 50 entradas de `v_comments_visible` para aquele capítulo. |
-| `/comunidade` | Lê até 24 registros da view `v_comments_visible`, em ordem decrescente. |
-| `/perfil` e `/admin` | Consultam apenas a linha `profiles` do ID `sub` obtido de claims assinadas. |
+1. crie uma migration incremental no backend;
+2. aplique/teste a migration no projeto Supabase correto;
+3. regenere ou sincronize os tipos;
+4. atualize queries/actions do frontend;
+5. rode lint, typecheck, unitários, build e E2E.
 
-Páginas tratam resultados ausentes com empty states ou 404; elas não devem fabricar livros/encontros. Erros em algumas queries são logados no servidor só com código e convertidos em `[]`/`null`; isso é uma decisão de fallback, não um sinal de que backend respondeu sem dados.
+### Fluxo de autenticação
 
-### Modelo de acesso e RLS
+1. O usuário entra ou se cadastra em `/entrar` ou `/cadastro`.
+2. O destino desejado é validado por `safeLocalRedirect`.
+3. Supabase Auth envia a sessão para `/auth/callback`.
+4. A callback troca o code por sessão e redireciona apenas para um caminho local.
+5. `src/proxy.ts` atualiza cookies SSR e impede acesso anônimo às rotas privadas.
+6. Páginas e actions repetem a autorização no servidor; o proxy não é a única barreira.
 
-1. Frontend usa exclusivamente `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, apropriada para client pública; ela **não é** a chave `service_role`/secret.
-2. Requests passam pela sessão SSR/cookies e pelas policies de **Row Level Security (RLS)** do backend. Mover uma chamada para Server Component não dá privilégio extra ao usuário.
-3. Toda leitura deve selecionar só colunas necessárias, filtrar por chave/tenant/usuário quando aplicável e aplicar limite/paginação. Queries deste app têm limites explícitos para listas.
-4. Antes de implementar escrita, leia no repositório `db` a tabela, os constraints/índices, as policies, as RPCs/Edge Functions e os contratos. Valide a identidade no servidor e deixe RLS impor o escopo. Nunca aceite `user_id`/role do formulário como autoridade.
-5. Não aplique DDL, escreva fixtures ou teste mutação no banco de produção como parte de um smoke test. Use um projeto Supabase de staging e usuários de teste dedicados.
+No Supabase Auth de cada ambiente, configure **Site URL** e **Redirect URLs** para:
 
-## Autenticação e sessão
-
-- Cadastro: Zod valida email e senha de pelo menos 10 caracteres; nome e username são validados no browser e enviados apenas como metadados do usuário para `auth.signUp`.
-- Login: `auth.signInWithPassword`; interface expõe respostas genéricas para erro e evita divulgar se um endereço existe no fluxo de link mágico.
-- Link mágico: `auth.signInWithOtp`, com `emailRedirectTo` para `/auth/callback`.
-- Callback: `exchangeCodeForSession`. O destino usa caminho interno local; URLs `https://`, `//` e prefixos com barra invertida são rejeitados por `safeLocalRedirect`/verificação correspondente.
-- Proxy SSR: sincroniza cookies request/response e consulta `auth.getClaims()` para validar assinatura da identidade. Ele não autoriza por `user_metadata` editável.
-- Logout: POST `/auth/signout` revoga sessão pelo Supabase SSR e redireciona para `/`.
-- `/perfil` e `/admin` repetem verificação server-side; o admin consulta `profiles.role` para negar acesso a quem não for admin.
-
-Antes de habilitar o fluxo publicado, configure Supabase Auth **Site URL** e **Redirect URLs** para cada origem/ambiente (local, staging, produção). Google e GitHub requerem OAuth client credentials e configuração do administrador; não assuma que estão habilitados.
-
-## Design system
-
-O sistema está dividido em três camadas no `src/styles/tokens.css`: primitivos (`--p-*`), semânticos (`--color-*`) e componentes (`--button-*`, `--card-*`, `--input-*`). `global.css` consome esses tokens, componentes não devem reintroduzir hex/tamanhos ad hoc sem motivo.
-
-### Paleta atual
-
-| Uso | Token/CSS | Valor |
-|---|---|---|
-| Background base | `--p-forest-950`, `--color-bg` | `#0a0f0d` |
-| Superfície | `--p-forest-900`, `--color-surface` | `#101815` |
-| Superfície elevada | `--p-forest-850`, `--color-elevated` | `#16201b` |
-| Overlay | `--p-forest-800`, `--color-overlay` | `#1c2a24` |
-| Primária/sálvia | `--p-sage`, `--color-primary`, `--button-bg` | `#7fe0a0` |
-| Hover primário | `--p-sage-200`, `--color-primary-hover` | `#9cebb6` |
-| Acento secundário | `--p-teal` | `#6ec9d9` |
-| Acento terciário | `--p-violet` | `#a78bfa` |
-| Texto principal | `--p-paper`, `--color-fg` | `#f1f5f0` |
-| Texto de apoio | `--p-mist`, `--color-muted` | `#b7c3ba` |
-| Texto sutil | `--color-subtle` | `#94a198` |
-| Texto em botão primário | `--color-on-primary` | `#07110c` |
-| Erro | `--color-danger` | `#ff9b91` |
-| Sucesso | `--color-success` | `#6ee7a7` |
-| Borda padrão | `--p-border` / `--color-border` | `rgb(255 255 255 / 9%)` |
-| Borda reforçada | `--p-border-strong` / `--color-border-strong` | `rgb(255 255 255 / 16%)` |
-| Marca em degradê | `--gradient-brand` | sálvia → teal (`56%`) → violeta |
-
-### Tipografia, escala e responsividade
-
-- Texto de interface: `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` (fallbacks locais; não depende de download de fonte para build).
-- Títulos editoriais: `"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif`.
-- Escala tipográfica: `--text-xs` `.75rem`; `--text-sm` `.875rem`; `--text-base` `1rem`; `--text-lg` `1.125rem`; `--text-xl` `1.25rem`; `--text-2xl` `1.5rem`; `--text-3xl` `1.875rem`; `--text-4xl` `clamp(2.2rem, 5.5vw, 4.5rem)`.
-- Espaçamento base `.25rem`; tokens `--space-1..6` = `.25, .5, .75, 1, 1.25, 1.5rem`; `--space-8/10/12/16` = `2/2.5/3/4rem`.
-- Bordas: `8/12/18/26px`, ou pill `999px`; transições rápidas `160ms`, base `220ms`; container `1180px`.
-- Breakpoints documentados pelo CSS: `900px` (grid/tablet) e `650px` (mobile). Grid principal passa de quatro colunas desktop para três em tablet e duas em mobile. As páginas são testadas em `375, 768, 1024, 1440px` sem overflow horizontal.
-- Acessibilidade transversal: `<html lang="pt-BR">`, link “Pular para o conteúdo”, foco `:focus-visible`, `prefers-reduced-motion`, landmarks/labels e botões com área mínima adequada.
-
-Os estilos são CSS próprio com classes semânticas como `.site-header`, `.hero`, `.book-grid`, `.book-card`, `.auth-card`, `.chapter-layout`, `.member-card`. Não há catálogo de componentes externo; use componentes do projeto antes de criar outro sistema de UI.
+- `http://localhost:3000` em desenvolvimento;
+- `https://diyspur.vercel.app` em produção;
+- eventuais previews Vercel autorizados, caso sejam usados.
 
 ## Configuração local
 
-Requisitos recomendados: Node.js `>=20.9` (Next 16), npm e acesso de rede ao endpoint Supabase de desenvolvimento.
+### Requisitos
+
+- Node.js `>=20.9`;
+- npm;
+- acesso ao projeto Supabase de desenvolvimento/staging;
+- Chromium instalado para Playwright (`npx playwright install chromium`).
+
+### Instalação
 
 ```bash
+git clone https://github.com/diyspur-cloud/app.git
+cd app
 cp .env.example .env.local
-# Edite .env.local. Use apenas uma chave publishable de desenvolvimento.
 npm ci
 npm run dev
 ```
 
-Variáveis necessárias:
+Abra <http://localhost:3000>.
 
-| Nome | Descrição | Exemplo sem credencial |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase | `https://<project-ref>.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Chave pública publishable do projeto | `sb_publishable_…` |
-| `NEXT_PUBLIC_SITE_URL` | Base canônica pública da aplicação | `http://localhost:3000` local |
+### Variáveis de ambiente
 
-O prefixo `NEXT_PUBLIC_` significa que os valores são embutidos/visíveis no browser; só URL e chave **publishable** podem usar esse prefixo. Nunca adicione `service_role`, secret API key, tokens OAuth ou senhas a `.env.example`, JS client, logs ou commits. `.env.local` e `.env.*` são ignorados pelo Git; `.env.example` é mantido versionado e sem credencial utilizável.
+| Variável | Obrigatória | Uso |
+|---|---:|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Sim | URL pública do projeto Supabase. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Sim | Chave publishable; nunca use `service_role` aqui. |
+| `NEXT_PUBLIC_SITE_URL` | Sim | Origem canônica usada por metadata, robots, sitemap e callbacks. |
 
-Após alterar Redirect URLs do Supabase, teste cadastro/login em **staging**. Para o callback local, permita `http://localhost:3000/auth/callback`. O SMTP/serviço de email e as restrições de signup devem ser configurados no painel backend, não no frontend.
+Exemplo local:
 
-## Segurança e privacidade
-
-- Headers globais em `next.config.mjs`: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy` sem câmera/microfone/geolocalização e `poweredByHeader: false`. CSP/HSTS não estão configurados neste app; só adicioná-los após validar requisitos de script, embeds e hosting.
-- Auth SSR usa cookies gerenciados pelo Supabase. Claims são verificados com `getClaims()`; não conceda papel de acesso por metadata editável.
-- Redirect pós-login é validado para evitar open redirect.
-- Conteúdo e comentários são renderizados por React (escape padrão); view `v_comments_visible` limita leitura à superfície pública backend.
-- Iframe YouTube só é inserido após clique e usa `youtube-nocookie.com`; player tem `title` e `referrerPolicy`.
-- Link externo de afiliado do livro só é exibido para URL `https://` e usa `rel="sponsored noopener noreferrer"`.
-- ICS valida o UUID, busca o evento no backend e escapa barra, newline, vírgula e ponto e vírgula antes de criar o arquivo.
-- `admin` não confia no navegador: a role é consultada no perfil pela sessão validada no servidor.
-- Logs de query em falha devem evitar payloads pessoais, JWTs, URLs assinadas ou chaves.
-
-## Qualidade, comandos e testes
-
-Scripts reais do `package.json`:
-
-```bash
-npm run dev          # Next dev local (porta default 3000)
-npm run build        # build otimizado
-npm run start        # serve build existente
-npm run lint         # ESLint flat config (typescript-eslint recommended)
-npm run typecheck    # tsc --noEmit
-npm test             # Vitest: somente tests/unit/**/*.test.ts
-npm run test:e2e     # Playwright: tests/e2e/**
-npm run audit        # npm audit --omit=dev
-npm audit            # auditoria de todas as dependências
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Playwright precisa do browser Chromium instalado uma vez por ambiente: `npx playwright install chromium`. Sem `PLAYWRIGHT_BASE_URL`, Playwright inicia `npm run dev` em `127.0.0.1:3000`; para verificar um ambiente já servido, defina `PLAYWRIGHT_BASE_URL=https://<host>` e não se inicia outro web server.
+`.env.local` é ignorado pelo Git. Não commite senhas, tokens OAuth, chaves de provider ou credenciais QA.
 
-Cobertura atual inclui redirects locais anti-open-redirect (Vitest), home/navegação, catálogo e detalhe do primeiro livro disponível, rótulos/login/cadastro, robots, proteção de `/perfil`, ausência de overflow em 375–1440px e skip link por teclado. O teste E2E de catálogo lê Supabase real/anônimo e não cadastra usuário nem modifica dados.
-
-`eslint.config.mjs` aplica `typescript-eslint` recomendado e ignora `src/types/database.ts` (arquivo gerado). Não há `format` script nem formatter padronizado ainda.
-
-## Build e deploy
-
-Antes de um build que será hospedado publicamente, defina o URL público **durante o build**. `robots.txt` é estático/prerenderizado; `NEXT_PUBLIC_SITE_URL` em `robots.ts`, `sitemap.ts` e `metadataBase` precisa refletir o host final:
+## Comandos
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://app.example.com npm ci
-NEXT_PUBLIC_SITE_URL=https://app.example.com npm run build
-npm run start
+npm ci                 # instala exatamente o package-lock.json
+npm run dev            # servidor de desenvolvimento
+npm run lint           # ESLint
+npm run typecheck      # TypeScript sem emitir arquivos
+npm test               # Vitest
+npm run build          # build de produção Next.js
+npm start              # serve o build produzido
+npm run test:e2e       # Playwright contra PLAYWRIGHT_BASE_URL ou localhost
+npm run audit          # npm audit sem dependências de desenvolvimento
 ```
 
-O ambiente deploy deve fornecer também `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Atualize Site URL e Redirect URLs no Supabase para o mesmo domínio HTTPS. Não assuma que build-local pode ser promovido sem rebuild se URL base mudar: a URL pública é incorporada às rotas/metadados estáticos.
+Exemplo de E2E contra produção:
 
-## Limites conhecidos e próximos passos
+```bash
+PLAYWRIGHT_BASE_URL=https://diyspur.vercel.app npm run test:e2e
+```
 
-1. Criar ambiente Supabase staging e contas de teste; validar cadastro, confirmação de email, login, magic link, logout, redirecionamento de sessão e consulta perfil em sessão real.
-2. Implementar escrita segura de comentários/progresso/quizzes só após conferir contracts/RLS/RPCs/Edge Functions do repositório backend; adicionar testes isolados e política anti-duplicate.
-3. Completar histórico, desafios, ranking, notificações e painel admin em alinhamento com schema e contratos reais.
-4. Habilitar OAuth Google/GitHub apenas após configurar secrets de provedor, callback/Redirect URLs e testes em staging.
-5. Revisar o conteúdo legal com pessoa responsável antes de usar como política publicada; textos atuais são uma base técnica, não parecer jurídico.
-6. Adicionar E2E autenticado isolado e testes adicionais do ICS/erro de backend/teclado, mantendo a regra de não escrever em produção.
-7. Planejar CSP e otimização/allowlist de imagens remotas antes de aceitar novas origens arbitrárias.
+## Testes e critérios de qualidade
 
-Para alterações no design, autenticação, banco ou documentação para agentes, leia também [`CLAUDE.md`](./CLAUDE.md) e [`AGENTS.md`](./AGENTS.md).
+A validação final desta versão incluiu:
+
+- lint e TypeScript sem erros;
+- 13 testes unitários aprovados;
+- 6 testes E2E públicos aprovados;
+- build de produção aprovado;
+- smoke de rotas, robots e sitemap;
+- larguras de viewport de 375, 768, 1024 e 1440 px sem overflow horizontal;
+- validação manual autenticada dos fluxos de leitura, quiz, progresso, RSVP, listas, desafio, comentários, votação, perfil e admin.
+
+Ao alterar uma migration ou action, não considere um build verde suficiente: confirme também RLS, constraints, idempotência e isolamento entre usuários.
+
+## Deploy no Vercel
+
+O repositório está conectado ao projeto Vercel que serve `https://diyspur.vercel.app`. O fluxo recomendado é:
+
+1. executar `npm run lint && npm run typecheck && npm test && npm run build`;
+2. executar `npm run test:e2e` contra o ambiente desejado;
+3. revisar `git diff --check`;
+4. fazer commit e push para `main`;
+5. aguardar o deploy automático do Vercel;
+6. verificar as rotas públicas, autenticação, `robots.txt`, `sitemap.xml` e os fluxos alterados.
+
+Configure no Vercel, em **Settings → Environment Variables**, para Production, Preview e Development conforme necessário:
+
+- `NEXT_PUBLIC_SUPABASE_URL`;
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`;
+- `NEXT_PUBLIC_SITE_URL`.
+
+O deploy do frontend não aplica migrations. Migrations e Edge Functions pertencem ao repositório backend e devem seguir o procedimento controlado documentado em [`diyspur-cloud/db`](https://github.com/diyspur-cloud/db).
+
+## Segurança
+
+- RLS do Supabase é a barreira final de acesso;
+- `user_id`, role, score, XP e gabarito nunca vêm do cliente como autoridade;
+- destinos de callback são locais e validados;
+- embeds de vídeo aceitam somente hosts/formats permitidos;
+- links afiliados só redirecionam para hosts Amazon allowlisted;
+- dados privados não são renderizados em páginas públicas;
+- comentários com spoiler são sinalizados e tratados como conteúdo editorial sensível;
+- erros técnicos não são exibidos crus ao leitor;
+- chaves publishable podem estar no browser; secrets nunca podem estar no bundle.
+
+## Como contribuir
+
+1. Crie uma branch a partir de `main`.
+2. Leia o README do backend antes de alterar tabelas, views, RPCs ou policies.
+3. Mantenha queries e actions no domínio correspondente.
+4. Adicione ou atualize testes para comportamento novo.
+5. Execute lint, typecheck, unitários e build.
+6. Faça E2E quando a mudança afetar navegação, autenticação ou responsividade.
+7. Use commits pequenos e descritivos.
+8. Nunca reescreva uma migration já aplicada; crie uma migration corretiva incremental.
+
+## Limites conhecidos
+
+- O catálogo e o sitemap usam limites de consulta; paginação/cursor completo deve ser tratado antes de operar em escala grande.
+- OAuth social, newsletter, pagamentos/Stripe, matching e recomendações dependem de credenciais, providers e aceite operacional externo; o frontend não presume que essas integrações estejam habilitadas.
+- O conteúdo editorial deve ser revisado antes de expandir quizzes, prompts, avisos ou temporadas.
+- A criação/gestão completa de clubes e algumas jornadas de leituras compartilhadas dependem dos contratos e policies correspondentes do backend.
+
+## Licença e contato
+
+Este repositório é privado/gerenciado pela organização DIYSPUR. Para alterações de produto, schema ou publicação, use os repositórios oficiais e preserve as regras de segurança descritas acima.
