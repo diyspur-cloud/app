@@ -15,6 +15,7 @@ export type Book = {
 export type Season = { id: string; number: number; title: string; slug: string; book_id: string; status: string; description: string | null; starts_at: string | null; ends_at: string | null; cover_url: string | null };
 export type Chapter = { id: string; season_id: string; number: number; title: string; reading_range: string | null; youtube_url: string | null; summary: string | null; published_at: string | null };
 export type ChapterAccess = { chapter_id: string; chapter_number: number; chapter_title: string; reading_range: string | null; published_at: string | null; can_open: boolean; requires_quiz: boolean };
+type ChapterNavigation = { id: string; number: number; title: string; published_at: string | null; canOpen: boolean };
 export type SeasonMilestone = { id: string; title: string; description: string | null; chapter_from: number | null; chapter_to: number | null; target_date: string | null; completed: boolean };
 export type Meeting = { id: string; chapter_id: string; title: string; status: string; kind: string; scheduled_at: string; duration_min: number | null; meeting_url: string | null; location: string | null; agenda: string | null };
 
@@ -86,11 +87,12 @@ export async function getChapters(id: string) {
     if (locked && locked.requires_quiz && !locked.can_open) return { locked: true as const, access: locked, signedIn: typeof claims?.claims?.sub === 'string' };
     return null;
   }
-  const [season, comments, progress, chapterList, meetings, questions, hostPrompt, hostPromptResult, hostPromptVote] = await Promise.all([
+  const [season, comments, progress, chapterList, accessResult, meetings, questions, hostPrompt, hostPromptResult, hostPromptVote] = await Promise.all([
     client.from('seasons').select('id,title,slug,book_id,status').eq('id', chapter.season_id).maybeSingle(),
     client.from('v_comments_visible').select('id,chapter_id,user_id,content,is_spoiler,is_locked,created_at').eq('chapter_id', id).order('created_at', { ascending: true }).limit(50),
     claims?.claims?.sub ? client.from('user_progress').select('status,percent').eq('user_id', String(claims.claims.sub)).eq('chapter_id', id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     client.from('chapters').select('id,number,title,published_at').eq('season_id', chapter.season_id).or(`published_at.is.null,published_at.lte.${new Date().toISOString()}`).order('number', { ascending: true }),
+    client.rpc('get_season_chapter_access', { p_season: chapter.season_id }),
     client.from('meetings').select('id,chapter_id,title,status,scheduled_at,duration_min,meeting_url,agenda').eq('chapter_id', id).order('scheduled_at', { ascending: false }).limit(1).maybeSingle(),
     claims?.claims?.sub ? client.from('v_quiz_questions_public').select('id,chapter_id,position,question,options').eq('chapter_id', id).order('position', { ascending: true }).limit(50) : Promise.resolve({ data: [], error: null }),
     client.from('host_prompts').select('id,question,options').eq('chapter_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -100,15 +102,22 @@ export async function getChapters(id: string) {
   if (!season.data || !['active', 'finished'].includes(season.data.status)) return null;
   const book = season.data ? await client.from('books').select('id,title,slug,cover_url,author_id').eq('id', season.data.book_id).maybeSingle() : { data: null };
   const ordered = (chapterList.data ?? []).filter((item) => !item.published_at || Date.parse(item.published_at) <= Date.now());
-  const index = ordered.findIndex((item) => item.id === chapter.id);
+  const accessRows = (accessResult.data ?? []) as ChapterAccess[];
+  const navigationRows = accessRows.length ? accessRows.slice().sort((a, b) => a.chapter_number - b.chapter_number) : ordered.map((item) => ({ chapter_id: item.id, chapter_number: item.number, chapter_title: item.title, reading_range: null, published_at: item.published_at, can_open: true, requires_quiz: false }));
+  const navIndex = navigationRows.findIndex((item) => item.chapter_id === chapter.id);
+  const previousAccessible = ordered.findIndex((item) => item.id === chapter.id);
+  const previousRow = navIndex > 0 ? navigationRows[navIndex - 1] : null;
+  const nextRow = navIndex >= 0 && navIndex < navigationRows.length - 1 ? navigationRows[navIndex + 1] : null;
+  const previous = previousAccessible > 0 ? ordered[previousAccessible - 1] : previousRow?.can_open ? { id: previousRow.chapter_id, number: previousRow.chapter_number, title: previousRow.chapter_title, published_at: previousRow.published_at } : null;
+  const next: ChapterNavigation | null = nextRow ? { id: nextRow.chapter_id, number: nextRow.chapter_number, title: nextRow.chapter_title, published_at: nextRow.published_at, canOpen: nextRow.can_open } : null;
   return {
     chapter: chapter as Chapter,
     season: season.data,
     book: book.data,
     comments: comments.data ?? [],
     progress: progress.data,
-    previous: index > 0 ? ordered[index - 1] : null,
-    next: index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : null,
+    previous,
+    next,
     meeting: meetings.data,
     questions: questions.data ?? [],
     hostPrompt: hostPrompt.data ? { id: hostPrompt.data.id, question: hostPrompt.data.question, options: Array.isArray(hostPrompt.data.options) ? hostPrompt.data.options.filter((option): option is string => typeof option === 'string').slice(0, 3) : [] } : null,

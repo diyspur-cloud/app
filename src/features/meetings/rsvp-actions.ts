@@ -37,15 +37,6 @@ async function getAuthenticatedContext() {
   }
 }
 
-async function awardMeetingXp(supabase: Awaited<ReturnType<typeof createServerSupabase>>, meetingId: string): Promise<boolean> {
-  const { data, error } = await supabase.functions.invoke('award-xp', { body: { source: 'join_meeting', ref_id: meetingId } });
-  if (error || !data || data.ok !== true) {
-    console.error('RSVP XP pending', error?.name ?? 'invalid_response');
-    return false;
-  }
-  return true;
-}
-
 /**
  * Read the current user's RSVP only. A server page can pass this value to
  * MeetingRsvp; the client component never performs an initial table query.
@@ -125,11 +116,10 @@ export async function setMeetingRsvp(input: unknown): Promise<MeetingRsvpActionR
     };
   }
 
-  const xpAwarded = parsed.data.attending ? await awardMeetingXp(session.supabase, parsed.data.meetingId) : true;
   revalidatePath('/calendario');
   return {
     ok: true,
     attending: parsed.data.attending,
-    message: parsed.data.attending ? (xpAwarded ? 'Presença confirmada.' : 'Presença confirmada. O XP será sincronizado automaticamente.') : 'Presença cancelada.',
+    message: parsed.data.attending ? 'Intenção de presença registrada. Isso não contabiliza presença nem concede XP.' : 'Intenção de presença cancelada.',
   };
 }

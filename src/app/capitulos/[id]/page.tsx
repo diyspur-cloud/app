@@ -42,7 +42,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
         <QuizPanel chapterId={chapter.id} questions={questions} signedIn={signedIn} />
         <nav className="chapter-navigation" aria-label="Navegação de capítulos">
           {previous ? <Link className="chapter-nav-link" href={`/capitulos/${previous.id}`}><span>← Capítulo anterior</span><strong>{previous.title}</strong></Link> : <span />}
-          {next ? <Link className="chapter-nav-link chapter-nav-next" href={`/capitulos/${next.id}`}><span>Próximo capítulo →</span><strong>{next.title}</strong></Link> : <span className="field-hint">Você chegou ao capítulo mais recente desta temporada.</span>}
+          {next ? next.canOpen ? <Link className="chapter-nav-link chapter-nav-next" href={`/capitulos/${next.id}`}><span>Próximo capítulo →</span><strong>{next.title}</strong></Link> : <Link className="chapter-nav-link chapter-nav-next" href={`/temporadas/${season.slug}`}><span>Próximo capítulo bloqueado</span><strong>{next.title}</strong><small>Complete o quiz anterior para continuar</small></Link> : <span className="field-hint">Você chegou ao capítulo mais recente desta temporada.</span>}
         </nav>
       </section>
       <aside className="chapter-aside">

@@ -21,7 +21,7 @@ export async function refreshSupabaseSession(request: NextRequest) {
 
   // getClaims validates the signature. Do not authorize based on user-editable user_metadata.
   const { data } = await supabase.auth.getClaims();
-  const isPrivate = /^\/(perfil|ranking|desafios|notificacoes|historico)(\/|$)/.test(request.nextUrl.pathname)
+  const isPrivate = /^\/(perfil|ranking|notificacoes|historico)(\/|$)/.test(request.nextUrl.pathname)
     || /^\/admin(\/|$)/.test(request.nextUrl.pathname);
   if (isPrivate && !data?.claims) {
     const destination = request.nextUrl.clone();
