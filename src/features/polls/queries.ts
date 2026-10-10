@@ -4,14 +4,15 @@ import type { Database } from '@/types/database';
 type PollRow = Database['public']['Tables']['book_polls']['Row'];
 type PollOptionRow = Database['public']['Tables']['book_poll_options']['Row'];
 
-type PublicPollOption = Pick<PollOptionRow, 'id' | 'poll_id' | 'proposal'>;
+type PublicPollOption = Pick<PollOptionRow, 'id' | 'poll_id' | 'proposal' | 'votes_count'>;
 
 export type PublicPoll = Pick<PollRow, 'id' | 'title' | 'opens_at' | 'closes_at' | 'status'> & {
   options: PublicPollOption[];
+  closed?: boolean;
 };
 
 const pollColumns = 'id,title,opens_at,closes_at,status';
-const optionColumns = 'id,poll_id,proposal';
+const optionColumns = 'id,poll_id,proposal,votes_count';
 
 export function isPollInWindow(poll: Pick<PollRow, 'status' | 'opens_at' | 'closes_at'>, now = new Date()): boolean {
   const opensAt = new Date(poll.opens_at).getTime();
@@ -69,6 +70,22 @@ export async function getPublicPolls(now = new Date()): Promise<PublicPoll[]> {
       .filter((poll) => poll.options.length > 0);
   } catch (cause) {
     console.error('Public polls unavailable', cause instanceof Error ? cause.name : 'unknown_error');
+    return [];
+  }
+}
+
+export async function getClosedPolls(now = new Date()): Promise<PublicPoll[]> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: polls, error } = await supabase.from('book_polls').select(pollColumns).eq('status', 'closed').lte('closes_at', now.toISOString()).order('closes_at', { ascending: false }).limit(12);
+    if (error || !polls?.length) return [];
+    const { data: options, error: optionsError } = await supabase.from('book_poll_options').select(optionColumns).in('poll_id', polls.map((poll) => poll.id)).order('id', { ascending: true });
+    if (optionsError) return [];
+    const byPoll = new Map<string, PublicPollOption[]>();
+    for (const option of options ?? []) byPoll.set(option.poll_id, [...(byPoll.get(option.poll_id) ?? []), option]);
+    return polls.map((poll) => ({ ...poll, closed: true, options: byPoll.get(poll.id) ?? [] })).filter((poll) => poll.options.length > 0);
+  } catch (cause) {
+    console.error('Closed polls unavailable', cause instanceof Error ? cause.name : 'unknown_error');
     return [];
   }
 }

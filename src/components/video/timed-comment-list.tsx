@@ -17,14 +17,14 @@ function youtubeVideoId(videoUrl: string): string | null {
   try {
     const url = new URL(videoUrl);
     const hostname = url.hostname.toLowerCase();
-    const isYouTube = hostname === 'youtube.com' || hostname === 'www.youtube.com' || hostname === 'm.youtube.com' || hostname === 'music.youtube.com';
-    const isShortYouTube = hostname === 'youtu.be' || hostname === 'www.youtu.be';
+    const isYouTube = hostname === 'youtube.com' || hostname === 'www.youtube.com' || hostname === 'm.youtube.com';
+    const isShortYouTube = hostname === 'youtu.be';
     if (url.protocol !== 'https:' || (!isYouTube && !isShortYouTube)) return null;
 
     const candidate = isShortYouTube
       ? url.pathname.split('/').filter(Boolean)[0]
       : url.searchParams.get('v') ?? url.pathname.match(/^\/(?:embed|shorts|live)\/([^/?#]+)/)?.[1];
-    return candidate && /^[A-Za-z0-9_-]+$/.test(candidate) ? candidate : null;
+    return candidate && /^[A-Za-z0-9_-]{11}$/.test(candidate) ? candidate : null;
   } catch {
     return null;
   }

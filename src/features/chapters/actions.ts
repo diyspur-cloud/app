@@ -80,15 +80,16 @@ export async function saveChapterProgress(input: unknown): Promise<ChapterAction
   const session = await currentUserId();
   if (!session) return { ok: false, message: 'Entre na sua conta para salvar seu progresso.' };
 
-  const { chapterId, status } = parsed.data;
+  const { chapterId, status, percent } = parsed.data;
   if (!await chapterIsAvailable(session.supabase, chapterId)) return { ok: false, message: 'Este capítulo ainda não está disponível para progresso.' };
+  const { data: currentProgress } = await session.supabase.from('user_progress').select('percent,started_at').eq('user_id', session.userId).eq('chapter_id', chapterId).maybeSingle();
   const finished = status === 'read';
   const { error } = await session.supabase.from('user_progress').upsert({
     user_id: session.userId,
     chapter_id: chapterId,
     status,
-    percent: finished ? 100 : 1,
-    finished_at: finished ? new Date().toISOString() : null,
+    percent: finished ? 100 : Math.max(0, Math.min(99, percent ?? currentProgress?.percent ?? 1)),
+    started_at: currentProgress?.started_at ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,chapter_id' });
   if (error) {

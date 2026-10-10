@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PollCard } from '@/components/polls/poll-card';
-import { getPublicPolls } from '@/features/polls/queries';
+import { getClosedPolls, getPublicPolls } from '@/features/polls/queries';
 
 export const metadata: Metadata = {
   title: 'Votação',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function VotingPage() {
-  const polls = await getPublicPolls();
+  const [polls, closedPolls] = await Promise.all([getPublicPolls(), getClosedPolls()]);
 
   return (
     <section className="container">
@@ -36,6 +36,7 @@ export default async function VotingPage() {
           </div>
         </div>
       )}
+      {closedPolls.length > 0 && <section className="season-list section" style={{ paddingTop: 20 }} aria-labelledby="poll-results-title"><div className="section-head"><div><span className="eyebrow">Decisões do clube</span><h2 id="poll-results-title">Votações encerradas</h2></div></div>{closedPolls.map((poll) => <PollCard key={poll.id} poll={poll} />)}</section>}
     </section>
   );
 }

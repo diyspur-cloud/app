@@ -11,12 +11,13 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
   chapterId: string;
   signedIn: boolean;
   viewerId: string | null;
-  progress: string | null;
+  progress: { status: string; percent: number | null } | null;
   comments: VisibleComment[];
 }) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [notice, setNotice] = useState('');
+  const [percent, setPercent] = useState(progress?.percent ?? 0);
   const [spoiler, setSpoiler] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -24,7 +25,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
   function updateProgress(status: 'reading' | 'read') {
     setNotice('');
     startTransition(async () => {
-      const result = await saveChapterProgress({ chapterId, status });
+      const result = await saveChapterProgress({ chapterId, status, percent: status === 'read' ? 100 : percent });
       setNotice(result.ok ? 'Progresso salvo.' : result.message);
       if (result.ok) router.refresh();
     });
@@ -63,7 +64,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
 
   return <>
     <section className="chapter-progress" aria-labelledby="progress-heading">
-      <div><span className="eyebrow">Seu ritmo</span><h2 id="progress-heading">Progresso deste capítulo</h2><p>{progress === 'read' ? 'Você marcou este capítulo como concluído.' : progress === 'reading' ? 'Este capítulo está em andamento.' : 'Seu progresso fica visível apenas para você.'}</p></div>
+      <div><span className="eyebrow">Seu ritmo</span><h2 id="progress-heading">Progresso deste capítulo</h2><p>{progress?.status === 'read' ? 'Você marcou este capítulo como concluído.' : progress?.status === 'reading' ? `Este capítulo está em andamento (${percent}%).` : 'Seu progresso fica visível apenas para você.'}</p>{signedIn && progress?.status !== 'read' && <label className="progress-slider" htmlFor="chapter-percent"><span>Avanço estimado: {percent}%</span><input id="chapter-percent" type="range" min="0" max="99" step="1" value={percent} onChange={(event) => setPercent(Number(event.target.value))} onMouseUp={() => updateProgress('reading')} onTouchEnd={() => updateProgress('reading')} /></label>}</div>
       {signedIn ? <div className="chapter-progress-actions"><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => updateProgress('reading')}>Estou lendo</button><button className="button button-small" type="button" disabled={busy} onClick={() => updateProgress('read')}>Concluir capítulo</button></div> : <Link className="button button-small" href={`/entrar?redirect=${encodeURIComponent(`/capitulos/${chapterId}`)}`}>Entre para salvar</Link>}
     </section>
     <section className="chapter-discussion" aria-labelledby="discussion-heading">

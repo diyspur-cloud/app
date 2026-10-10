@@ -101,7 +101,7 @@ function AchievementList({ achievements }: { achievements: Achievement[] }) {
 }
 
 function OverviewContent({ data }: { data: ProfileOverviewData }) {
-  const { overview, xp, streak, achievements, recentHistory } = data;
+  const { overview, xp, streak, quizAverage, achievements, recentHistory } = data;
   const overviewMetrics: Array<{ label: string; value: string | number }> = [];
   if (overview) {
     if (overview.books_read !== null) overviewMetrics.push({ label: 'Livros concluídos', value: overview.books_read });
@@ -112,10 +112,10 @@ function OverviewContent({ data }: { data: ProfileOverviewData }) {
     if (overview.total_minutes !== null) overviewMetrics.push({ label: 'Tempo de leitura', value: formatMinutes(overview.total_minutes) });
     if (overview.read_today !== null) overviewMetrics.push({ label: 'Leituras hoje', value: overview.read_today });
   }
-  const hasActivity = overviewMetrics.length > 0 || Boolean(xp || streak || achievements.length || recentHistory.length);
+  const hasActivity = overviewMetrics.length > 0 || Boolean(xp || streak || quizAverage || achievements.length || recentHistory.length);
 
   return (
-    <main className="member-card">
+    <section className="member-card">
       <h2>Bem-vindo(a) ao seu clube</h2>
       <p>{data.profile?.bio ?? 'Quando sua leitura começar, este espaço vai acompanhar seu caminho e suas descobertas.'}</p>
       {data.profile?.level && <p>Nível: {data.profile.level}</p>}
@@ -171,12 +171,14 @@ function OverviewContent({ data }: { data: ProfileOverviewData }) {
         </section>
       )}
 
+      {quizAverage && quizAverage.attempts_total > 0 && <section className="section" style={{ paddingBlock: 28 }} aria-labelledby="quiz-momentum-title"><div className="section-head" style={{ marginBottom: 0 }}><div><span className="eyebrow">Quiz</span><h2 id="quiz-momentum-title">Você está guardando a leitura</h2></div></div><MetricGrid metrics={[{ label: 'Tentativas', value: quizAverage.attempts_total }, { label: 'Média', value: `${Math.round(quizAverage.average_percent)}%` }, { label: 'Melhor resultado', value: `${Math.round(quizAverage.best_percent)}%` }]} /></section>}
+
       {recentHistory.length > 0 && <RecentReading items={recentHistory} />}
       {achievements.length > 0 && <AchievementList achievements={achievements} />}
 
       <div className="notice" style={{ marginTop: 22 }}>Seus dados pessoais e seu progresso são protegidos pelas políticas de acesso do clube.</div>
       <div style={{ marginTop: 20 }}><Link className="button button-dark button-small" href="/livros">Escolher uma leitura</Link></div>
-    </main>
+    </section>
   );
 }
 

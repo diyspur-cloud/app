@@ -36,6 +36,11 @@ export function PollCard({ poll }: { poll: PublicPoll }) {
     });
   }
 
+  if (poll.closed) {
+    const totalVotes = poll.options.reduce((sum, option) => sum + (option.votes_count ?? 0), 0);
+    return <article className="member-card" aria-labelledby={`poll-title-${poll.id}`}><span className="eyebrow">Resultado da comunidade</span><h2 id={`poll-title-${poll.id}`} style={{ marginTop: '12px', font: '400 28px/1.15 var(--font-serif)' }}>{poll.title}</h2><p className="field-hint" style={{ marginTop: '10px' }}>Votação encerrada · {totalVotes} voto{totalVotes === 1 ? '' : 's'}</p><div style={{ display: 'grid', gap: '10px', marginTop: '20px' }}>{poll.options.map((option, index) => { const votes = option.votes_count ?? 0; const percentage = totalVotes ? Math.round((votes / totalVotes) * 100) : 0; return <div key={option.id}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}><strong>{option.proposal?.trim() || `Opção ${index + 1}`}</strong><span className="field-hint">{percentage}% · {votes}</span></div><div aria-hidden="true" style={{ height: '8px', marginTop: '6px', borderRadius: '999px', background: 'var(--color-overlay)', overflow: 'hidden' }}><div style={{ width: `${percentage}%`, height: '100%', background: 'var(--color-primary)' }} /></div></div>; })}</div></article>;
+  }
+
   return (
     <article className="member-card" aria-labelledby={`poll-title-${poll.id}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>

@@ -6,6 +6,7 @@ type ProfileRow = Pick<Tables<'profiles'>, 'username' | 'display_name' | 'avatar
 type OverviewRow = Tables<'v_user_reading_overview'>;
 type ProgressRow = Pick<Tables<'user_progress'>, 'id' | 'chapter_id' | 'finished_at' | 'percent' | 'started_at' | 'status' | 'updated_at'>;
 type XpRow = Pick<Tables<'user_xp'>, 'season_id' | 'season_xp' | 'total_xp'>;
+type QuizAverageRow = Pick<Tables<'user_quiz_averages'>, 'attempts_total' | 'average_percent' | 'best_percent' | 'last_attempt_at'>;
 type StreakRow = Pick<Tables<'user_streaks'>, 'current_streak' | 'last_activity_at' | 'longest_streak'>;
 type UserAchievementRow = Pick<Tables<'user_achievements'>, 'achievement_id' | 'unlocked_at'>;
 type AchievementRow = Pick<Tables<'achievements'>, 'id' | 'title' | 'description' | 'icon_url' | 'xp_reward'>;
@@ -36,6 +37,7 @@ export type ProfileOverviewData = {
   overview: OverviewRow | null;
   xp: XpRow | null;
   streak: StreakRow | null;
+  quizAverage: QuizAverageRow | null;
   achievements: Achievement[];
   recentHistory: ReadingHistoryItem[];
 };
@@ -188,7 +190,7 @@ export async function getProfileOverview(): Promise<ProfileOverviewData | null> 
   if (!context) return null;
 
   const { client, userId } = context;
-  const [profile, overview, xp, streak] = await Promise.all([
+  const [profile, overview, xp, streak, quizAverage] = await Promise.all([
     readOrNull<ProfileRow>(
       client.from('profiles').select('username,display_name,avatar_url,bio,level').eq('id', userId).maybeSingle(),
       'profile',
@@ -209,6 +211,10 @@ export async function getProfileOverview(): Promise<ProfileOverviewData | null> 
       client.from('user_streaks').select('current_streak,last_activity_at,longest_streak').eq('user_id', userId).maybeSingle(),
       'user streak',
     ),
+    readOrNull<QuizAverageRow>(
+      client.from('user_quiz_averages').select('attempts_total,average_percent,best_percent,last_attempt_at').eq('user_id', userId).maybeSingle(),
+      'quiz average',
+    ),
   ]);
 
   const [achievements, recentHistory] = await Promise.all([
@@ -216,7 +222,7 @@ export async function getProfileOverview(): Promise<ProfileOverviewData | null> 
     loadReadingHistory(client, userId, 5),
   ]);
 
-  return { profile, overview, xp, streak, achievements, recentHistory };
+  return { profile, overview, xp, streak, quizAverage, achievements, recentHistory };
 }
 
 export async function getReadingHistory(): Promise<ReadingHistoryItem[] | null> {

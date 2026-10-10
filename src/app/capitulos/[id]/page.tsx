@@ -6,11 +6,21 @@ import { YouTubeFacade } from '@/components/youtube-facade';
 import { TimedCommentList } from '@/components/video/timed-comment-list';
 import { getChapters } from '@/features/catalog/queries';
 import { getTimedComments } from '@/features/video-comments/queries';
+import type { Metadata } from 'next';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const result = await getChapters(id);
+  if (!result) return { title: 'Capítulo não encontrado' };
+  if ('locked' in result) return { title: `${result.access.chapter_title} · Capítulo bloqueado`, robots: { index: false, follow: false } };
+  return { title: result.chapter.title, description: result.chapter.summary ?? `Leitura guiada de ${result.chapter.title}.` };
+}
 
 export default async function ChapterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const result = await getChapters(id);
   if (!result) notFound();
+  if ('locked' in result) return <section className="container"><header className="page-intro"><span className="eyebrow">Leitura em sequência</span><h1>{result.access.chapter_title}</h1><p>Este capítulo é liberado depois da tentativa do quiz anterior, para manter a conversa sem spoilers.</p></header><div className="empty-state"><div className="empty-state-mark" aria-hidden="true">▣</div><h2>{result.signedIn ? 'Complete o capítulo anterior primeiro' : 'Entre para continuar a leitura'}</h2><p>{result.signedIn ? 'Responda ao quiz do capítulo anterior. A tentativa fica registrada no seu histórico e libera o próximo passo.' : 'Crie uma conta ou entre para guardar seu progresso e desbloquear a sequência do clube.'}</p><div className="empty-actions"><Link className="button button-small" href={result.signedIn ? `/temporadas/${result.access.season_slug}` : `/entrar?redirect=${encodeURIComponent(`/capitulos/${id}`)}`}>{result.signedIn ? 'Voltar à temporada' : 'Entrar para continuar'}</Link></div></div></section>;
   const { chapter, season, book, comments, progress, previous, next, meeting, questions, signedIn, viewerId } = result;
   const timedComments = await getTimedComments(chapter.id);
   const meetingDate = meeting?.scheduled_at ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(meeting.scheduled_at)) : null;
@@ -26,7 +36,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
         <YouTubeFacade videoUrl={chapter.youtube_url} title={chapter.title} />
         <TimedCommentList comments={timedComments} chapterId={chapter.id} signedIn={signedIn} videoUrl={chapter.youtube_url} />
         {chapter.summary && <section className="section chapter-summary"><h2>Sobre este capítulo</h2><p>{chapter.summary}</p></section>}
-        <ChapterInteractions chapterId={chapter.id} signedIn={signedIn} viewerId={viewerId} progress={progress?.status ?? null} comments={comments} />
+        <ChapterInteractions chapterId={chapter.id} signedIn={signedIn} viewerId={viewerId} progress={progress ? { status: progress.status, percent: progress.percent } : null} comments={comments} />
         <QuizPanel chapterId={chapter.id} questions={questions} signedIn={signedIn} />
         <nav className="chapter-navigation" aria-label="Navegação de capítulos">
           {previous ? <Link className="chapter-nav-link" href={`/capitulos/${previous.id}`}><span>← Capítulo anterior</span><strong>{previous.title}</strong></Link> : <span />}

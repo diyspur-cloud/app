@@ -4899,6 +4899,19 @@ export type Database = {
           shared_moods: Database["public"]["Enums"]["mood_kind"][]
         }[]
       }
+      get_chapter_access: {
+        Args: { p_chapter: string }
+        Returns: {
+          can_open: boolean
+          chapter_id: string
+          chapter_number: number
+          chapter_title: string
+          requires_quiz: boolean
+          season_id: string
+          season_slug: string
+          season_title: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       link_stripe_customer: {
         Args: { p_customer_id: string; p_user: string }

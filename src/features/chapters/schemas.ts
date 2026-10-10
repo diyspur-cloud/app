@@ -10,6 +10,7 @@ export const commentSchema = z.object({
 export const progressSchema = z.object({
   chapterId: z.string().uuid(),
   status: z.enum(['reading', 'read']),
+  percent: z.coerce.number().int().min(0).max(100).optional(),
 });
 
 export type ChapterActionResult = { ok: true } | { ok: false; message: string };

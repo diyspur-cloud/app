@@ -12,7 +12,7 @@ export type Book = {
 };
 export type Season = { id: string; number: number; title: string; slug: string; book_id: string; status: string; description: string | null; starts_at: string | null; ends_at: string | null; cover_url: string | null };
 export type Chapter = { id: string; season_id: string; number: number; title: string; reading_range: string | null; youtube_url: string | null; summary: string | null; published_at: string | null };
-export type Meeting = { id: string; chapter_id: string; title: string; status: string; scheduled_at: string; duration_min: number | null; meeting_url: string | null; agenda: string | null };
+export type Meeting = { id: string; chapter_id: string; title: string; status: string; kind: string; scheduled_at: string; duration_min: number | null; meeting_url: string | null; location: string | null; agenda: string | null };
 
 export async function getBooks(search?: string): Promise<Book[]> {
   const client = await createServerSupabase();
@@ -53,7 +53,7 @@ export async function getSeason(slug: string) {
 
 export async function getMeetings(): Promise<Meeting[]> {
   const client = await createServerSupabase();
-  const { data, error } = await client.from('meetings').select('id,chapter_id,title,status,scheduled_at,duration_min,meeting_url,agenda').gte('scheduled_at', new Date().toISOString()).order('scheduled_at').limit(20);
+  const { data, error } = await client.from('meetings').select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda').order('scheduled_at').limit(36);
   if (error) { console.error('Meetings query failed', error.code); return []; }
   return (data ?? []) as Meeting[];
 }
@@ -64,7 +64,12 @@ export async function getChapters(id: string) {
     client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('id', id).maybeSingle(),
     client.auth.getClaims(),
   ]);
-  if (error || !chapter || (chapter.published_at && Date.parse(chapter.published_at) > Date.now())) return null;
+  if (error || !chapter || (chapter.published_at && Date.parse(chapter.published_at) > Date.now())) {
+    const { data: access } = await client.rpc('get_chapter_access', { p_chapter: id });
+    const locked = access?.[0];
+    if (locked && locked.requires_quiz && !locked.can_open) return { locked: true as const, access: locked, signedIn: typeof claims?.claims?.sub === 'string' };
+    return null;
+  }
   const [season, comments, progress, chapterList, meetings, questions] = await Promise.all([
     client.from('seasons').select('id,title,slug,book_id,status').eq('id', chapter.season_id).maybeSingle(),
     client.from('v_comments_visible').select('id,chapter_id,user_id,content,is_spoiler,is_locked,created_at').eq('chapter_id', id).order('created_at', { ascending: true }).limit(50),
