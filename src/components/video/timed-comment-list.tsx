@@ -92,7 +92,7 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
         return <li className="comment-card timed-comment-card" key={comment.id}>
           {href ? <a className="text-link timed-comment-timestamp" href={href} target="_blank" rel="noopener noreferrer">{label}</a> : <span className="field-hint timed-comment-timestamp">{label}</span>}
           <p>{comment.content}</p>
-          <span className="field-hint">Comentário sobre este momento · {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</span>
+          <span className="field-hint">{comment.distinct_commenters === 1 ? '1 pessoa comentou este trecho' : `${comment.distinct_commenters} pessoas comentaram este trecho`} · {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</span>
         </li>;
       })}
     </ol> : <div className="empty-state">

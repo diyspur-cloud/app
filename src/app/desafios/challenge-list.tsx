@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import type { ChallengeRow, UserChallengeRow } from './queries';
+import { EnrollButton } from './enroll-button';
 
 function safeProgress(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -118,7 +119,10 @@ export function ChallengeList({
               ) : progressError ? (
                 <p className="field-hint" style={{ marginTop: 16 }}>Seu progresso não está disponível no momento.</p>
               ) : signedIn ? (
-                <p className="field-hint" style={{ marginTop: 16 }}>Você ainda não está inscrito neste desafio.</p>
+                <>
+                  <p className="field-hint" style={{ marginTop: 16 }}>Você ainda não está inscrito neste desafio.</p>
+                  <EnrollButton challengeId={challenge.id} />
+                </>
               ) : (
                 <p style={{ marginTop: 16 }}><Link className="text-link" href="/entrar?redirect=%2Fdesafios">Entre para acompanhar seu progresso →</Link></p>
               )}
@@ -127,8 +131,8 @@ export function ChallengeList({
         })}
       </div>
       <div className="notice" style={{ marginTop: 20 }}>
-        <strong>Inscrição e progresso são somente leitura nesta versão.</strong>
-        <p style={{ marginTop: 7 }}>A tela não cria inscrições nem permite marcar uma conclusão manualmente. Essas ações dependem de uma operação server-side com regra de negócio e policy própria.</p>
+        <strong>Seu progresso é atualizado pelas atividades do clube.</strong>
+        <p style={{ marginTop: 7 }}>A inscrição é privada e idempotente; a conclusão não pode ser marcada manualmente.</p>
       </div>
     </>
   );
