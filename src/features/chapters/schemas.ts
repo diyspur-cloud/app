@@ -13,4 +13,4 @@ export const progressSchema = z.object({
   percent: z.coerce.number().int().min(0).max(100).optional(),
 });
 
-export type ChapterActionResult = { ok: true } | { ok: false; message: string };
+export type ChapterActionResult = { ok: true; message?: string } | { ok: false; message: string };

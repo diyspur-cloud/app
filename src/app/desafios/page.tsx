@@ -36,7 +36,7 @@ export default async function ChallengesPage() {
             <h2 id="challenges-heading">Desafios disponíveis</h2>
           </div>
         </div>
-        <p className="field-hint" style={{ marginBottom: 18 }}>A lista é limitada no servidor aos desafios que a policy de leitura autoriza.</p>
+        <p className="field-hint" style={{ marginBottom: 18 }}>Os próximos desafios serão publicados aqui quando um novo ciclo estiver pronto para acompanhar.</p>
         <ChallengeList
           challenges={challenges}
           progress={progress}

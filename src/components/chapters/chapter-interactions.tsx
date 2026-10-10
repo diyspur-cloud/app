@@ -26,7 +26,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
     setNotice('');
     startTransition(async () => {
       const result = await saveChapterProgress({ chapterId, status, percent: status === 'read' ? 100 : percent });
-      setNotice(result.ok ? 'Progresso salvo.' : result.message);
+      setNotice(result.ok ? result.message ?? 'Progresso salvo.' : result.message);
       if (result.ok) router.refresh();
     });
   }
@@ -39,7 +39,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
     setNotice('');
     startTransition(async () => {
       const result = await createChapterComment({ chapterId, content, isSpoiler: spoiler, minPercent: spoiler ? Number(minPercentRaw) : 0 });
-      setNotice(result.ok ? 'Comentário publicado.' : result.message);
+      setNotice(result.ok ? result.message ?? 'Comentário publicado.' : result.message);
       if (result.ok) { form.reset(); setSpoiler(false); router.refresh(); }
     });
   }

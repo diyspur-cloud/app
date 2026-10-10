@@ -12,6 +12,15 @@ async function currentUserId() {
   return !error && typeof userId === 'string' ? { supabase, userId } : null;
 }
 
+async function awardActivity(supabase: Awaited<ReturnType<typeof createServerSupabase>>, source: 'finish_chapter' | 'comment', refId: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('award-xp', { body: { source, ref_id: refId } });
+  if (error || !data || data.ok !== true) {
+    console.error('Activity XP pending', source, error?.name ?? 'invalid_response');
+    return false;
+  }
+  return true;
+}
+
 async function chapterIsAvailable(supabase: Awaited<ReturnType<typeof createServerSupabase>>, chapterId: string) {
   const { data: chapter, error } = await supabase.from('chapters').select('season_id,published_at').eq('id', chapterId).maybeSingle();
   if (error || !chapter || (chapter.published_at && Date.parse(chapter.published_at) > Date.now())) return false;
@@ -28,20 +37,21 @@ export async function createChapterComment(input: unknown): Promise<ChapterActio
 
   const { chapterId, content, isSpoiler, minPercent } = parsed.data;
   if (!await chapterIsAvailable(session.supabase, chapterId)) return { ok: false, message: 'Este capítulo ainda não está disponível para interação.' };
-  const { error } = await session.supabase.from('comments').insert({
+  const { data: insertedComment, error } = await session.supabase.from('comments').insert({
     chapter_id: chapterId,
     user_id: session.userId,
     content,
     is_spoiler: isSpoiler,
     min_percent: isSpoiler ? (minPercent ?? 100) : 0,
-  });
+  }).select('id').single();
   if (error) {
     console.error('Comment write failed', error.code);
     return { ok: false, message: error.code === '42501' ? 'Sua sessão não permite publicar este comentário.' : 'Não foi possível publicar agora. Tente novamente.' };
   }
+  const xpAwarded = insertedComment?.id ? await awardActivity(session.supabase, 'comment', insertedComment.id) : false;
   revalidatePath(`/capitulos/${chapterId}`);
   revalidatePath('/comunidade');
-  return { ok: true };
+  return { ok: true, message: xpAwarded ? 'Comentário publicado.' : 'Comentário publicado. O XP será sincronizado automaticamente.' } as ChapterActionResult;
 }
 
 const commentEditSchema = z.object({ commentId: z.string().uuid(), chapterId: z.string().uuid(), content: z.string().trim().min(1).max(4000) });
@@ -99,7 +109,8 @@ export async function saveChapterProgress(input: unknown): Promise<ChapterAction
   revalidatePath(`/capitulos/${chapterId}`);
   revalidatePath('/perfil');
   revalidatePath('/historico');
-  return { ok: true };
+  const xpAwarded = finished ? await awardActivity(session.supabase, 'finish_chapter', chapterId) : true;
+  return { ok: true, message: xpAwarded ? 'Progresso salvo.' : 'Progresso salvo. O XP será sincronizado automaticamente.' } as ChapterActionResult;
 }
 
 const quizSubmissionSchema = z.object({

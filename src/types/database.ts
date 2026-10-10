@@ -4912,6 +4912,18 @@ export type Database = {
           season_title: string
         }[]
       }
+      get_season_chapter_access: {
+        Args: { p_season: string }
+        Returns: {
+          can_open: boolean
+          chapter_id: string
+          chapter_number: number
+          chapter_title: string
+          published_at: string | null
+          reading_range: string | null
+          requires_quiz: boolean
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       link_stripe_customer: {
         Args: { p_customer_id: string; p_user: string }

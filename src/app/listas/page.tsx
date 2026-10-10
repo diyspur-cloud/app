@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { createServerSupabase } from '@/lib/supabase/clients';
+import { CreateListForm } from '@/components/lists/create-list-form';
 
 export const metadata: Metadata = {
   title: 'Listas de leitura',
@@ -262,6 +263,8 @@ export default async function ListsPage() {
         <h1>Listas para<br /><em style={{ color: 'var(--color-primary)' }}>voltar.</em></h1>
         <p>Organize o que quer descobrir e veja as listas que leitores compartilharam com você.</p>
       </header>
+
+      {data.userId && <CreateListForm />}
 
       {!data.userId ? (
         <div className="member-card" role={data.error ? 'alert' : undefined}>
