@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, type FormEvent } from 'react';
-import { createChapterComment, deleteChapterComment, editChapterComment, saveChapterProgress } from '@/features/chapters/actions';
+import { createChapterComment, deleteChapterComment, editChapterComment, getOwnChapterCommentForEdit, saveChapterProgress } from '@/features/chapters/actions';
 
 type VisibleComment = { id: string; user_id: string; content: string | null; is_spoiler: boolean; is_locked: boolean; created_at: string };
 
@@ -44,6 +44,15 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
     });
   }
 
+  function beginEdit(commentId: string) {
+    setNotice('');
+    startTransition(async () => {
+      const result = await getOwnChapterCommentForEdit({ commentId, chapterId });
+      if (result.ok) { setEditingId(commentId); setEditText(result.content); }
+      else setNotice(result.message);
+    });
+  }
+
   function saveEdit(commentId: string) {
     setNotice('');
     startTransition(async () => {
@@ -65,7 +74,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
   return <>
     <section className="chapter-progress" aria-labelledby="progress-heading">
       <div><span className="eyebrow">Seu ritmo</span><h2 id="progress-heading">Progresso deste capítulo</h2><p>{progress?.status === 'read' ? 'Você marcou este capítulo como concluído.' : progress?.status === 'reading' ? `Este capítulo está em andamento (${percent}%).` : 'Seu progresso fica visível apenas para você.'}</p>{signedIn && progress?.status !== 'read' && <label className="progress-slider" htmlFor="chapter-percent"><span>Avanço estimado: {percent}%</span><input id="chapter-percent" type="range" min="0" max="99" step="1" value={percent} onChange={(event) => setPercent(Number(event.target.value))} onMouseUp={() => updateProgress('reading')} onTouchEnd={() => updateProgress('reading')} onKeyUp={(event) => { if (event.key === 'Enter' || event.key === ' ') updateProgress('reading'); }} /></label>}</div>
-      {signedIn ? <div className="chapter-progress-actions"><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => updateProgress('reading')}>Salvar progresso</button><button className="button button-small" type="button" disabled={busy} onClick={() => updateProgress('read')}>Concluir capítulo</button></div> : <Link className="button button-small" href={`/entrar?redirect=${encodeURIComponent(`/capitulos/${chapterId}`)}`}>Entre para salvar</Link>}
+      {signedIn ? <div className="chapter-progress-actions">{progress?.status !== 'read' && <button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => updateProgress('reading')}>Salvar progresso</button>}<button className="button button-small" type="button" disabled={busy} onClick={() => updateProgress('read')}>Concluir capítulo</button></div> : <Link className="button button-small" href={`/entrar?redirect=${encodeURIComponent(`/capitulos/${chapterId}`)}`}>Entre para salvar</Link>}
     </section>
     <section className="chapter-discussion" aria-labelledby="discussion-heading">
       <div className="section-head"><div><span className="eyebrow">Juntos na leitura</span><h2 id="discussion-heading">O que ficou com você?</h2></div></div>
@@ -73,7 +82,7 @@ export function ChapterInteractions({ chapterId, signedIn, viewerId, progress, c
         {comment.is_locked || comment.content === null ? <p className="spoiler-locked">Este comentário tem spoiler. Marque progresso suficiente no capítulo para revelar o texto.</p> : comment.is_spoiler ? <details><summary className="text-link">Revelar comentário com spoiler</summary><p>{comment.content}</p></details> : <p>{comment.content}</p>}
         <span className="field-hint">{comment.is_spoiler ? 'Comentário marcado com spoiler' : 'Conversa da comunidade'} · {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</span>
         {signedIn && viewerId === comment.user_id && <div className="comment-actions">
-          {editingId === comment.id ? <div className="comment-edit"><label htmlFor={`edit-${comment.id}`}>Editar seu comentário</label><textarea id={`edit-${comment.id}`} value={editText} maxLength={4000} onChange={(event) => setEditText(event.target.value)} /><div className="chapter-progress-actions"><button className="button button-small" type="button" disabled={busy} onClick={() => saveEdit(comment.id)}>Salvar edição</button><button className="button button-quiet button-small" type="button" onClick={() => setEditingId(null)}>Cancelar</button></div></div> : <><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => { setEditingId(comment.id); setEditText(comment.content ?? ''); }}>Editar</button><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => removeComment(comment.id)}>Remover</button></>}
+          {editingId === comment.id ? <div className="comment-edit"><label htmlFor={`edit-${comment.id}`}>Editar seu comentário</label><textarea id={`edit-${comment.id}`} value={editText} maxLength={4000} onChange={(event) => setEditText(event.target.value)} /><div className="chapter-progress-actions"><button className="button button-small" type="button" disabled={busy} onClick={() => saveEdit(comment.id)}>Salvar edição</button><button className="button button-quiet button-small" type="button" onClick={() => setEditingId(null)}>Cancelar</button></div></div> : <><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => beginEdit(comment.id)}>Editar</button><button className="button button-quiet button-small" type="button" disabled={busy} onClick={() => removeComment(comment.id)}>Remover</button></>}
         </div>}
       </li>)}</ul> : <div className="empty-state"><h3>A conversa começa com uma leitura</h3><p>Seja a primeira pessoa a compartilhar uma impressão sobre este capítulo.</p></div>}
       {signedIn ? <form className="comment-composer" onSubmit={postComment}>

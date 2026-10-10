@@ -53,7 +53,7 @@ export async function createTimedComment(input: unknown): Promise<TimedCommentAc
   const auth = await authenticatedContext();
   if (!auth) return { ok: false, message: 'Entre na sua conta para comentar no vídeo.' };
 
-  const { chapterId, videoSec, content } = parsed.data;
+  const { chapterId, videoSec, content, isSpoiler, minPercent } = parsed.data;
   if (!await chapterIsAccessible(auth.supabase, chapterId)) {
     return { ok: false, message: 'Este capítulo ainda não está disponível para comentários.' };
   }
@@ -63,6 +63,8 @@ export async function createTimedComment(input: unknown): Promise<TimedCommentAc
     user_id: auth.userId,
     video_sec: videoSec,
     content,
+    is_spoiler: isSpoiler,
+    min_percent: isSpoiler ? minPercent : 0,
   });
 
   if (error) {

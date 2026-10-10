@@ -222,7 +222,7 @@ function ListCard({ list, books, chapters }: { list: ListView; books: Map<string
   const updated = formatDate(list.updated_at);
   const headingId = `list-${list.id}`;
   const relation = list.isOwned ? 'Sua lista' : 'Compartilhada com você';
-  const itemCount = list.items.length || list.items_count;
+  const itemCount = list.items.length;
 
   return (
     <article className="member-card" aria-labelledby={headingId}>

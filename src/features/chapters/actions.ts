@@ -56,6 +56,16 @@ export async function createChapterComment(input: unknown): Promise<ChapterActio
 
 const commentEditSchema = z.object({ commentId: z.string().uuid(), chapterId: z.string().uuid(), content: z.string().trim().min(1).max(4000) });
 
+export async function getOwnChapterCommentForEdit(input: unknown): Promise<{ ok: true; content: string } | { ok: false; message: string }> {
+  const parsed = z.object({ commentId: z.string().uuid(), chapterId: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'O comentário informado não é válido.' };
+  const session = await currentUserId();
+  if (!session) return { ok: false, message: 'Entre novamente para editar seu comentário.' };
+  const { data, error } = await session.supabase.rpc('get_own_chapter_comment_for_edit', { p_comment_id: parsed.data.commentId, p_chapter_id: parsed.data.chapterId });
+  if (error || typeof data !== 'string') return { ok: false, message: 'Não foi possível carregar seu comentário para edição.' };
+  return { ok: true, content: data };
+}
+
 export async function editChapterComment(input: unknown): Promise<ChapterActionResult> {
   if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
   const parsed = commentEditSchema.safeParse(input);
@@ -76,8 +86,8 @@ export async function deleteChapterComment(input: unknown): Promise<ChapterActio
   if (!parsed.success) return { ok: false, message: 'O comentário informado não é válido.' };
   const session = await currentUserId();
   if (!session) return { ok: false, message: 'Entre novamente para remover seu comentário.' };
-  const { data, error } = await session.supabase.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', parsed.data.commentId).eq('chapter_id', parsed.data.chapterId).eq('user_id', session.userId).select('id').maybeSingle();
-  if (error || !data) return { ok: false, message: 'Não foi possível remover este comentário.' };
+  const { data, error } = await session.supabase.rpc('remove_own_chapter_comment', { p_comment_id: parsed.data.commentId, p_chapter_id: parsed.data.chapterId });
+  if (error || data !== true) return { ok: false, message: 'Não foi possível remover este comentário.' };
   revalidatePath(`/capitulos/${parsed.data.chapterId}`);
   revalidatePath('/comunidade');
   return { ok: true };
@@ -92,8 +102,11 @@ export async function saveChapterProgress(input: unknown): Promise<ChapterAction
 
   const { chapterId, status, percent } = parsed.data;
   if (!await chapterIsAvailable(session.supabase, chapterId)) return { ok: false, message: 'Este capítulo ainda não está disponível para progresso.' };
-  const { data: currentProgress } = await session.supabase.from('user_progress').select('percent,started_at').eq('user_id', session.userId).eq('chapter_id', chapterId).maybeSingle();
+  const { data: currentProgress } = await session.supabase.from('user_progress').select('status,percent,started_at').eq('user_id', session.userId).eq('chapter_id', chapterId).maybeSingle();
   const finished = status === 'read';
+  if (!finished && currentProgress?.status === 'read') {
+    return { ok: false, message: 'Este capítulo já foi concluído e não pode regredir.' };
+  }
   const { error } = await session.supabase.from('user_progress').upsert({
     user_id: session.userId,
     chapter_id: chapterId,
@@ -116,7 +129,7 @@ export async function saveChapterProgress(input: unknown): Promise<ChapterAction
 const quizSubmissionSchema = z.object({
   chapterId: z.string().uuid(),
   requestId: z.string().uuid(),
-  answers: z.array(z.object({ question_id: z.string().uuid(), chosen_idx: z.number().int().min(0).max(25) })).max(50),
+  answers: z.array(z.object({ question_id: z.string().uuid(), chosen_idx: z.number().int().min(0).max(25) })).min(1).max(50),
 });
 export type QuizSubmission = z.infer<typeof quizSubmissionSchema>;
 export type QuizResult = { ok: false; message: string } | { ok: true; score: number; total: number; duplicate: boolean };

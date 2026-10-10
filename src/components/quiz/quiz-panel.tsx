@@ -16,6 +16,10 @@ export function QuizPanel({ chapterId, questions, signedIn }: { chapterId: strin
 
   function submit() {
     setMessage('');
+    if (Object.keys(answers).length !== questions.length) {
+      setMessage(`Responda às ${questions.length} perguntas antes de enviar o quiz.`);
+      return;
+    }
     const payload: Answer[] = Object.entries(answers).map(([question_id, chosen_idx]) => ({ question_id, chosen_idx }));
     const fingerprint = JSON.stringify({ chapterId, answers: payload });
     const requestId = requestKey?.fingerprint === fingerprint ? requestKey.id : crypto.randomUUID();
@@ -42,8 +46,8 @@ export function QuizPanel({ chapterId, questions, signedIn }: { chapterId: strin
         const options = Array.isArray(question.options) ? question.options : [];
         return <li key={question.id} className="quiz-question"><fieldset><legend><span className="eyebrow">Pergunta {index + 1}</span><strong>{question.question}</strong></legend><div className="quiz-options">{options.map((option, optionIndex) => <label className="quiz-option" key={`${question.id}-${optionIndex}`}><input type="radio" name={question.id} value={optionIndex} checked={answers[question.id] === optionIndex} disabled={Boolean(result)} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))} /><span>{String(option)}</span></label>)}</div></fieldset></li>;
       })}</ol>
-      {result ? <div className="quiz-result" role="status"><strong>Resultado: {result.score} de {result.total}</strong><p>{result.duplicate ? 'Esta tentativa já havia sido registrada; o resultado foi recuperado com segurança.' : 'Sua tentativa foi validada pelo servidor.'}</p><button className="button button-quiet button-small" type="button" onClick={retry}>Tentar novamente</button></div> : <button className="button button-small" type="button" onClick={submit} disabled={busy || !questions.length}>{busy ? 'Validando…' : 'Enviar respostas'}</button>}
-      <p className="field-hint">Perguntas sem resposta são consideradas incorretas; o servidor valida o resultado e controla tentativas/retries.</p>
+      {result ? <div className="quiz-result" role="status"><strong>Resultado: {result.score} de {result.total}</strong><p>{result.duplicate ? 'Esta tentativa já havia sido registrada; o resultado foi recuperado com segurança.' : 'Sua tentativa foi validada pelo servidor.'}</p><button className="button button-quiet button-small" type="button" onClick={retry}>Tentar novamente</button></div> : <button className="button button-small" type="button" onClick={submit} disabled={busy || !questions.length || Object.keys(answers).length !== questions.length}>{busy ? 'Validando…' : 'Enviar respostas'}</button>}
+      <p className="field-hint">Todas as perguntas precisam de uma resposta. O servidor valida o resultado e controla tentativas/retries.</p>
     </>}
     {message && <p className="action-feedback" role="alert">{message}</p>}
   </section>;

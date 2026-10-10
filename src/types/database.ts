@@ -4512,7 +4512,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_spoiler: boolean
           likes_count: number
+          min_percent: number
           user_id: string
           video_sec: number
         }
@@ -4521,7 +4523,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_spoiler?: boolean
           likes_count?: number
+          min_percent?: number
           user_id: string
           video_sec: number
         }
@@ -4530,7 +4534,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_spoiler?: boolean
           likes_count?: number
+          min_percent?: number
           user_id?: string
           video_sec?: number
         }
@@ -5028,6 +5034,22 @@ export type Database = {
           season_title: string
         }[]
       }
+      get_own_chapter_comment_for_edit: {
+        Args: { p_chapter_id: string; p_comment_id: string }
+        Returns: string
+      }
+      get_visible_video_timed_comments: {
+        Args: { p_chapter: string; p_limit?: number }
+        Returns: {
+          chapter_id: string
+          content: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          is_spoiler: boolean
+          video_sec: number
+        }[]
+      }
       get_my_profile_private: {
         Args: never
         Returns: {
@@ -5070,6 +5092,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      remove_own_chapter_comment: { Args: { p_chapter_id: string; p_comment_id: string }; Returns: boolean }
       join_user_club: { Args: { p_club: string }; Returns: boolean }
       leave_user_club: { Args: { p_club: string }; Returns: boolean }
       link_stripe_customer: {
