@@ -81,7 +81,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
               </dl>
             ) : null}
             {book.warnings?.length ? <section className="book-warnings" aria-labelledby="content-warnings-title"><h2 id="content-warnings-title">Avisos de conteúdo</h2><ul>{book.warnings.map((warning) => <li key={`${warning.label}-${warning.severity}`}><strong>{warning.label}</strong><span>{warning.severity === 'graphic' ? 'Intenso' : warning.severity === 'moderate' ? 'Moderado' : 'Leve'}{warning.is_community ? ' · sinalizado pela comunidade' : ' · revisão editorial'}</span>{warning.description && <p>{warning.description}</p>}</li>)}</ul></section> : null}
-            {safeExternal ? <a className="button button-small" href={book.amazon_url!} target="_blank" rel="sponsored noopener noreferrer">Encontrar o livro <span aria-hidden="true">↗</span></a> : null}
+            {safeExternal ? <a className="button button-small" href={`/api/affiliate/${encodeURIComponent(book.slug)}`} target="_blank" rel="sponsored noopener noreferrer">Encontrar o livro <span aria-hidden="true">↗</span></a> : null}
             {book.readerLists ? <AddBookToList bookId={book.id} lists={book.readerLists} /> : <p className="field-hint" style={{ marginTop: 12 }}>Entre para guardar este livro em uma lista privada.</p>}
           </div>
         </div>
