@@ -5089,6 +5089,7 @@ export type Database = {
         | "incomplete"
       user_role: "reader" | "ambassador" | "editor" | "admin"
       xp_source:
+        | "achievement"
         | "join_meeting"
         | "finish_chapter"
         | "comment"
@@ -5332,6 +5333,7 @@ export const Constants = {
       ],
       user_role: ["reader", "ambassador", "editor", "admin"],
       xp_source: [
+        "achievement",
         "join_meeting",
         "finish_chapter",
         "comment",
