@@ -1,18 +1,13 @@
 import { z } from 'zod';
 import { createServerSupabase } from '@/lib/supabase/clients';
-import type { Database } from '@/types/database';
-
-type TimedCommentRow = Database['public']['Tables']['video_timed_comments']['Row'];
-
 /** Fields safe for this public list; ownership and counters are not needed by the UI. */
-export type PublicTimedComment = Pick<TimedCommentRow, 'id' | 'chapter_id' | 'video_sec' | 'content' | 'created_at'> & {
+export type PublicTimedComment = { id: string; chapter_id: string; video_sec: number; content: string | null; is_spoiler: boolean; is_locked: boolean; created_at: string } & {
   comment_count: number;
   distinct_commenters: number;
 };
 export type TimedComment = PublicTimedComment;
 
 const chapterIdSchema = z.string().uuid();
-const publicTimedCommentColumns = 'id,chapter_id,video_sec,content,created_at';
 export const DEFAULT_TIMED_COMMENT_LIMIT = 50;
 export const MAX_TIMED_COMMENT_LIMIT = 100;
 
@@ -32,13 +27,7 @@ export async function getTimedComments(chapterId: string, limit = DEFAULT_TIMED_
 
   try {
     const supabase = await createServerSupabase();
-    const { data, error } = await supabase
-      .from('video_timed_comments')
-      .select(publicTimedCommentColumns)
-      .eq('chapter_id', chapterId)
-      .order('video_sec', { ascending: true })
-      .order('created_at', { ascending: true })
-      .limit(safeLimit(limit));
+    const { data, error } = await supabase.rpc('get_visible_video_timed_comments', { p_chapter: chapterId, p_limit: safeLimit(limit) });
 
     if (error) {
       console.error('Timed comments query failed', error.code);
@@ -52,7 +41,8 @@ export async function getTimedComments(chapterId: string, limit = DEFAULT_TIMED_
       .limit(safeLimit(limit));
     if (statsError) console.error('Timed comment stats query failed', statsError.code);
     const statsBySecond = new Map((stats ?? []).map((row) => [`${row.chapter_id}:${row.video_sec}`, row]));
-    return (data ?? []).map((comment) => {
+    const visibleComments = (data ?? []) as PublicTimedComment[];
+    return visibleComments.map((comment) => {
       const aggregate = statsBySecond.get(`${comment.chapter_id}:${comment.video_sec}`);
       return {
         ...(comment as Omit<PublicTimedComment, 'comment_count' | 'distinct_commenters'>),

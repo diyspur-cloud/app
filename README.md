@@ -355,3 +355,51 @@ As variáveis obrigatórias de produção são `NEXT_PUBLIC_SUPABASE_URL`, `NEXT
 | Segurança | RLS/RPC/Auth testados com anon, titular, outro usuário e admin |
 
 O Supabase ainda pode apresentar advisories preexistentes, como extensions no schema `public`, funções de acesso de capítulos marcadas como `SECURITY DEFINER`, proteção de senha vazada desabilitada e índices não utilizados. Esses avisos não foram silenciosamente tratados nesta entrega; devem ser avaliados como hardening separado.
+
+## Release de hardening da auditoria — 2026-10-10
+
+Esta seção documenta a correção dos achados confirmados no reteste autenticado. A release está organizada na branch `fix/auditoria-20261010` e será integrada à `main` após as validações de schema e produção.
+
+### Correções incluídas
+
+| Área | Comportamento garantido |
+|---|---|
+| Quiz | A interface só envia quando todas as perguntas estão respondidas; a Edge Function rejeita payload vazio/incompleto e continua calculando score no servidor. |
+| Progresso | Capítulos concluídos não exibem mais “Salvar progresso”; a action e o trigger do banco impedem regressão de `read` para `reading`. |
+| Comentário próprio | Edição de spoiler busca o texto original através de RPC autenticada; remoção usa soft delete por RPC idempotente e não depende de retornar uma linha já ocultada. |
+| Comentário temporizado | Suporta spoiler, percentual mínimo e leitura mascarada no servidor; o conteúdo bruto não é enviado a leitores não elegíveis. |
+| Listas | A contagem exibida vem dos itens carregados; o backend faz backfill e mantém `items_count` por trigger atômico em inclusão, remoção e movimentação. |
+| Disponibilidade | Escritas de progresso e comentários exigem capítulo publicado em temporada ativa/finalizada e gate de quiz quando aplicável. |
+
+### Contrato de chamadas novas
+
+O frontend consome `remove_own_chapter_comment`, `get_own_chapter_comment_for_edit`, `get_visible_video_timed_comments` e `get_season_chapter_access`, definidos no backend. As duas primeiras são restritas ao autor autenticado; a terceira mascara spoilers no servidor; a quarta oculta temporadas que não estejam publicadas.
+
+### Fluxo de desenvolvimento e release
+
+1. Crie branch a partir de `main`.
+2. Faça migration incremental no repositório `db`; nunca edite migration aplicada.
+3. Valide SQL em staging e aplique o backend antes de publicar o frontend.
+4. Gere/sincronize `src/types/database.ts`.
+5. Execute `npm ci`, `npm run typecheck`, `npm run lint`, `npm test` e `npm run build`.
+6. Rode E2E público e smoke tests autenticados no ambiente aprovado.
+7. Abra PRs para os dois repositórios e faça merge somente com checks verdes.
+8. Confirme o deployment Vercel e registre a versão do schema remoto.
+
+### Verificação manual da release
+
+- tentar enviar quiz sem nenhuma resposta e com apenas uma resposta; ambos devem ser rejeitados sem criar tentativa;
+- concluir capítulo e confirmar que “Salvar progresso” não aparece e que uma regressão direta falha;
+- editar spoiler próprio e confirmar o texto original; outra conta não pode acessar esse texto;
+- remover comentário próprio, confirmar `deleted_at` e repetir sem gerar novo XP;
+- publicar spoiler temporizado, verificar `content = null` antes do limiar e conteúdo após o limiar;
+- incluir, repetir, remover e mover itens de lista; `items_count` deve coincidir com a contagem real;
+- testar visitante, titular, outra conta e admin sem confiar em `user_id`, role, score ou gabarito enviados pelo cliente.
+
+### Variáveis e segredos
+
+O frontend usa apenas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_SITE_URL`. `service_role`, tokens, senhas e segredos nunca podem estar em `NEXT_PUBLIC_*`, no bundle, no README ou no Git.
+
+### Estado de validação
+
+TypeScript, ESLint, 13 testes unitários e build de produção foram aprovados com as variáveis Supabase do ambiente. As migrations estão versionadas no backend; o smoke autenticado deve ocorrer após sua aplicação remota.

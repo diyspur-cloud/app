@@ -53,6 +53,7 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
+  const [spoiler, setSpoiler] = useState(false);
 
   function submitComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,11 +62,13 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
     const form = new FormData(formElement);
     const videoSec = Number(form.get('videoSec'));
     const content = String(form.get('content') ?? '');
+    const minPercent = Number(form.get('minPercent') ?? '100');
     startTransition(async () => {
-      const result = await createTimedComment({ chapterId, videoSec, content });
+      const result = await createTimedComment({ chapterId, videoSec, content, isSpoiler: spoiler, minPercent });
       setFeedback({ ok: result.ok, message: result.ok ? 'Comentário publicado.' : result.message });
       if (result.ok) {
         formElement.reset();
+        setSpoiler(false);
         router.refresh();
       }
     });
@@ -81,7 +84,9 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
     {signedIn ? <form className="comment-composer" onSubmit={submitComment}>
       <label className="field-group"><span>Segundo do vídeo</span><input className="field" name="videoSec" type="number" min="0" max="86400" step="1" required aria-describedby="timed-comment-hint" /></label>
       <label className="field-group"><span>Seu comentário</span><textarea className="field" name="content" minLength={1} maxLength={2000} rows={3} required aria-describedby="timed-comment-hint" placeholder="Compartilhe uma ideia sobre este momento…" /></label>
-      <p className="field-hint" id="timed-comment-hint">Use segundos inteiros (até 24 horas). O link do momento abre o vídeo em uma nova aba.</p>
+      <label className="checkbox-line"><input type="checkbox" checked={spoiler} onChange={(event) => setSpoiler(event.target.checked)} /> Este comentário contém spoiler</label>
+      {spoiler && <label className="field-group"><span>Mostrar quando o progresso chegar a</span><select className="field" name="minPercent" defaultValue="100"><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100% do capítulo</option></select></label>}
+      <p className="field-hint" id="timed-comment-hint">Use segundos inteiros (até 24 horas). Spoilers são mascarados no servidor até o progresso definido.</p>
       <button className="button button-small" type="submit" disabled={busy}>{busy ? 'Publicando…' : 'Comentar neste momento'}</button>
       {feedback && <p className={feedback.ok ? 'action-feedback' : 'action-feedback'} role={feedback.ok ? 'status' : 'alert'}>{feedback.message}</p>}
     </form> : <p className="notice">Entre para comentar sobre um momento do vídeo. <a className="text-link" href={`/entrar?redirect=${encodeURIComponent(`/capitulos/${chapterId}`)}`}>Entrar →</a></p>}
@@ -91,7 +96,7 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
         const href = timestampUrl(videoUrl, comment.video_sec);
         return <li className="comment-card timed-comment-card" key={comment.id}>
           {href ? <a className="text-link timed-comment-timestamp" href={href} target="_blank" rel="noopener noreferrer">{label}</a> : <span className="field-hint timed-comment-timestamp">{label}</span>}
-          <p>{comment.content}</p>
+          {comment.is_locked || comment.content === null ? <p className="spoiler-locked">Este comentário tem spoiler. Avance no capítulo para revelar o texto.</p> : <p>{comment.content}</p>}
           <span className="field-hint">{comment.distinct_commenters === 1 ? '1 pessoa comentou este trecho' : `${comment.distinct_commenters} pessoas comentaram este trecho`} · {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(comment.created_at))}</span>
         </li>;
       })}
