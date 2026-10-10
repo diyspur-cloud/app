@@ -358,7 +358,7 @@ O Supabase ainda pode apresentar advisories preexistentes, como extensions no sc
 
 ## Release de hardening da auditoria — 2026-10-10
 
-Esta seção documenta a correção dos achados confirmados no reteste autenticado. A release está organizada na branch `fix/auditoria-20261010` e será integrada à `main` após as validações de schema e produção.
+Esta seção documenta a correção dos achados confirmados no reteste autenticado. A release foi integrada à `main` pelo PR #3 e publicada no deployment Vercel de produção associado ao commit `7d0f824c9118d35e1cd154987447929079258915`.
 
 ### Correções incluídas
 
@@ -402,4 +402,4 @@ O frontend usa apenas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHA
 
 ### Estado de validação
 
-TypeScript, ESLint, 13 testes unitários e build de produção foram aprovados com as variáveis Supabase do ambiente. As migrations estão versionadas no backend; o smoke autenticado deve ocorrer após sua aplicação remota.
+TypeScript, ESLint, 13 testes unitários e build de produção foram aprovados. As migrations foram aplicadas no projeto Supabase `xjhehhfhhoomblcggjpk` nas versões remotas `20261010165108` e `20261010165112`; o smoke público de produção foi executado em `/`, `/livros`, `/livros/verity`, `/temporadas/t1-verity`, `/capitulos/3a687744-7a0f-4dbf-9bad-f5ad3d920732`, `/listas` e `/admin` em 10/10/2026.
