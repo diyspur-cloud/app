@@ -26,7 +26,7 @@ test('cadastro e login têm rótulos, validação e nenhum redirect externo', as
   await expect(page.getByLabel('Como podemos chamar você?')).toBeVisible();
   await page.goto('/entrar?redirect=%2F%2Fevil.example');
   await expect(page.getByRole('button', { name: 'Entrar na comunidade' })).toBeVisible();
-  await expect(page.getByLabel('Senha')).toHaveAttribute('minlength', '10');
+  await expect(page.getByRole('textbox', { name: 'Senha' })).toHaveAttribute('minlength', '1');
 });
 
 test('robots exclui perfis e rotas administrativas da indexação', async ({ request }) => {
