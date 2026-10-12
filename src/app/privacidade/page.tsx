@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { supportEmail } from '@/lib/site-contact';
 
 export const metadata: Metadata = {
   title: 'Privacidade e Proteção de Dados',
@@ -51,7 +52,7 @@ export default function PrivacyPage() {
       <h2>5. Contato</h2>
       <p>
         Para dúvidas sobre privacidade ou exercer seus direitos de titular de dados, entre em contato pelo
-        email <code>suporte@diyspur.com</code>.
+        email <code>{supportEmail}</code>.
       </p>
     </article>
   );

@@ -93,6 +93,30 @@ export async function inviteUser(input: unknown): Promise<Result> {
   return { ok: true, message: 'Convite criado.' };
 }
 
+export async function inviteByUsername(input: unknown): Promise<Result> {
+  const parsed = z.object({
+    clubId: z.string().uuid(),
+    username: z.string().trim().transform((v) => v.replace(/^@/, '').toLowerCase())
+      .pipe(z.string().regex(/^[a-z0-9_]{3,24}$/)),
+  }).strict().safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'Informe um nome de usuário válido (@leitor).' };
+  const session = await requireSession();
+  if (!session) return { ok: false, message: 'Entre para convidar leitores.' };
+  const { data: reader, error } = await session.client
+    .from('v_profiles_public')
+    .select('id')
+    .eq('username', parsed.data.username)
+    .maybeSingle();
+
+  if (error || !reader?.id) return { ok: false, message: 'Não foi possível localizar esse leitor.' };
+
+  return inviteUser({
+    clubId: parsed.data.clubId,
+    invitedUserId: reader.id,
+    expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+  });
+}
+
 export async function revokeInvitation(input: unknown): Promise<Result> {
   const parsed = z.object({ invitationId: z.string().uuid() }).safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Convite inválido.', code: 'validation' };

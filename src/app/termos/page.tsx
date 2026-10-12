@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { supportEmail } from '@/lib/site-contact';
 
 export const metadata: Metadata = {
   title: 'Termos de uso',
@@ -53,7 +54,7 @@ export default function TermsPage() {
 
       <h2>6. Contato</h2>
       <p>
-        Para dúvidas sobre os termos de uso ou reportar condutas inadequadas, entre em contato pelo email <code>oi@diyspur.com</code>.
+        Para dúvidas sobre os termos de uso ou reportar condutas inadequadas, entre em contato pelo email <code>{supportEmail}</code>.
       </p>
     </article>
   );

@@ -1,5 +1,6 @@
 'use server';
 
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
 import { revalidatePath } from 'next/cache';
 import { createServerSupabase } from '@/lib/supabase/clients';
 import { createTimedCommentSchema, type TimedCommentActionResult } from './schemas';
@@ -44,7 +45,7 @@ async function chapterIsAccessible(supabase: ServerSupabase, chapterId: string):
 }
 
 export async function createTimedComment(input: unknown): Promise<TimedCommentActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = createTimedCommentSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? 'Confira os dados do comentário.' };

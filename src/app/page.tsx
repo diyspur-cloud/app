@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBooks, getMeetings, getActiveSeason } from '@/features/catalog/queries';
+import { getBooks, getUpcomingMeetings, getActiveSeason } from '@/features/catalog/queries';
 import { getPublicPolls } from '@/features/polls/queries';
 import { BookCard } from '@/components/book-card';
+import { requireSession } from '@/lib/auth/session';
 
 export const metadata: Metadata = {
   alternates: {
@@ -12,14 +13,15 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [books, meetings, activeSeason, polls] = await Promise.all([
+  const [books, meetings, activeSeason, polls, session] = await Promise.all([
     getBooks(),
-    getMeetings(),
+    getUpcomingMeetings(4),
     getActiveSeason(),
     getPublicPolls(),
+    requireSession(),
   ]);
 
-  const featuredBook = activeSeason?.book ?? books[0];
+  const signedIn = Boolean(session);
   const activePoll = polls[0];
 
   return (
@@ -96,11 +98,6 @@ export default async function HomePage() {
             <h2>Temporada em Destaque</h2>
             <p>A comunidade está reunida lendo e debatendo esta obra agora mesmo.</p>
           </div>
-          {activeSeason?.season && (
-            <Link className="text-link" href={`/temporadas/${activeSeason.season.slug}`}>
-              Ver cronograma completo <span aria-hidden="true">→</span>
-            </Link>
-          )}
         </div>
 
         {activeSeason?.season ? (
@@ -166,7 +163,7 @@ export default async function HomePage() {
 
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
                 <Link className="btn btn-primary" href={`/temporadas/${activeSeason.season.slug}`}>
-                  Entrar nesta leitura <span aria-hidden="true">↗</span>
+                  Acompanhar temporada <span aria-hidden="true">↗</span>
                 </Link>
                 {activeSeason.book && (
                   <Link className="btn btn-secondary" href={`/livros/${activeSeason.book.slug}`}>
@@ -190,7 +187,7 @@ export default async function HomePage() {
       <section className="section container">
         <div className="section-head" style={{ textAlign: 'center', alignItems: 'center' }}>
           <div>
-            <span className="eyebrow">A Experiência DiySpur</span>
+            <span className="eyebrow">Exemplo ilustrativo da experiência</span>
             <h2>Segunda tela para quem ama ler</h2>
             <p>Seja com livro físico, Kindle ou Kobo: o DiySpur é seu espaço de debate e acompanhamento seguro.</p>
           </div>
@@ -205,15 +202,15 @@ export default async function HomePage() {
               </div>
               <div className="reader-screen-badge">
                 <span className="reader-screen-dot" aria-hidden="true" />
-                Ciclo ativo · Capítulo 1
+                Exemplo ilustrativo · Demonstração
               </div>
             </div>
 
             <div className="reader-screen-body">
               <div className="reader-screen-sidebar">
-                <div className="mockup-book-badge">Temporada Atual</div>
+                <div className="mockup-book-badge">Demonstração</div>
                 <div className="mockup-book-title" style={{ fontFamily: 'var(--font-serif)' }}>
-                  {featuredBook?.title ?? 'Verity'}
+                  Livro do seu clube
                 </div>
                 <div className="mockup-chapter-row active">
                   <span>Capítulo 1 · Início do Ciclo</span>
@@ -221,11 +218,11 @@ export default async function HomePage() {
                 </div>
                 <div className="mockup-chapter-row">
                   <span>Capítulo 2 · Aprofundamento</span>
-                  <span className="mockup-status-muted">Próx. semana</span>
+                  <span className="mockup-status-muted">Capítulo seguinte</span>
                 </div>
                 <div className="mockup-chapter-row">
                   <span>Capítulo 3 · Clímax & Teorias</span>
-                  <span className="mockup-status-muted">Em breve</span>
+                  <span className="mockup-status-muted">Capítulo final</span>
                 </div>
               </div>
 
@@ -310,7 +307,7 @@ export default async function HomePage() {
                 <h3 style={{ fontSize: 'var(--text-title)', fontWeight: 'var(--weight-display)' }}>Próxima leitura do clube</h3>
               </div>
               <Link className="text-link" href="/votacao">
-                Votar →
+                {activePoll ? 'Votar na próxima leitura →' : 'Ver resultados anteriores →'}
               </Link>
             </div>
 
@@ -445,8 +442,8 @@ export default async function HomePage() {
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '24px' }}>
-            <Link className="btn btn-primary btn-lg" href="/cadastro">
-              Entrar no clube gratuitamente <span aria-hidden="true">↗</span>
+            <Link className="btn btn-primary btn-lg" href={signedIn ? '/perfil' : '/cadastro'}>
+              {signedIn ? 'Continuar minha leitura' : 'Entrar no clube gratuitamente'} <span aria-hidden="true">↗</span>
             </Link>
             <Link className="btn btn-secondary btn-lg" href="/livros">
               Explorar acervo de livros

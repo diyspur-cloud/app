@@ -15,7 +15,7 @@ export default async function GoalsPage() {
   if (!session) redirect('/entrar?redirect=/metas');
 
   const currentYear = new Date().getFullYear();
-  const { goal, progress } = await getUserReadingGoal(session.userId, currentYear);
+  const { goal, progress, error } = await getUserReadingGoal(session.userId, currentYear);
 
   return (
     <section className="container">
@@ -26,6 +26,12 @@ export default async function GoalsPage() {
         </h1>
         <p>Defina metas para orientar seu ano e acompanhe o progresso derivado das suas leituras e diários.</p>
       </header>
+
+      {error && (
+        <div className="notice" role="alert" style={{ marginBottom: '20px' }}>
+          Não foi possível carregar o progresso anual no momento.
+        </div>
+      )}
 
       <div className="member-grid">
         <section aria-labelledby="goals-config-heading" className="member-card">
@@ -43,16 +49,22 @@ export default async function GoalsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
             <div className="member-card" style={{ padding: '16px' }}>
               <span className="eyebrow">Livros concluídos</span>
-              <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
-                {progress?.books_done ?? 0} {goal?.target_books ? `/ ${goal.target_books}` : 'livros'}
-              </p>
-              {goal?.target_books ? (
+              {progress ? (
+                <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
+                  {progress.books_done} {goal?.target_books ? `/ ${goal.target_books}` : 'livros'}
+                </p>
+              ) : (
+                <p className="field-hint" style={{ margin: '6px 0 0' }}>
+                  {goal ? 'O progresso anual ainda não está disponível.' : 'Defina uma meta para acompanhar seu progresso anual.'}
+                </p>
+              )}
+              {goal?.target_books && progress ? (
                 <div style={{ background: 'var(--surface-3)', height: '6px', borderRadius: '4px', overflow: 'hidden' }}>
                   <div
                     style={{
                       background: 'var(--brand)',
                       height: '100%',
-                      width: `${Math.min(100, Math.round(((progress?.books_done ?? 0) / goal.target_books) * 100))}%`,
+                      width: `${Math.min(100, Math.round((progress.books_done / goal.target_books) * 100))}%`,
                     }}
                   />
                 </div>
@@ -61,16 +73,22 @@ export default async function GoalsPage() {
 
             <div className="member-card" style={{ padding: '16px' }}>
               <span className="eyebrow">Páginas lidas</span>
-              <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
-                {progress?.pages_done ?? 0} {goal?.target_pages ? `/ ${goal.target_pages}` : 'páginas'}
-              </p>
-              {goal?.target_pages ? (
+              {progress ? (
+                <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
+                  {progress.pages_done} {goal?.target_pages ? `/ ${goal.target_pages}` : 'páginas'}
+                </p>
+              ) : (
+                <p className="field-hint" style={{ margin: '6px 0 0' }}>
+                  {goal ? 'O progresso anual ainda não está disponível.' : 'Defina uma meta para acompanhar seu progresso anual.'}
+                </p>
+              )}
+              {goal?.target_pages && progress ? (
                 <div style={{ background: 'var(--surface-3)', height: '6px', borderRadius: '4px', overflow: 'hidden' }}>
                   <div
                     style={{
                       background: 'var(--brand)',
                       height: '100%',
-                      width: `${Math.min(100, Math.round(((progress?.pages_done ?? 0) / goal.target_pages) * 100))}%`,
+                      width: `${Math.min(100, Math.round((progress.pages_done / goal.target_pages) * 100))}%`,
                     }}
                   />
                 </div>
@@ -79,16 +97,22 @@ export default async function GoalsPage() {
 
             <div className="member-card" style={{ padding: '16px' }}>
               <span className="eyebrow">Tempo dedicado</span>
-              <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
-                {progress?.minutes_done ?? 0} {goal?.target_minutes ? `/ ${goal.target_minutes}` : 'minutos'}
-              </p>
-              {goal?.target_minutes ? (
+              {progress ? (
+                <p style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)', margin: '4px 0' }}>
+                  {progress.minutes_done} {goal?.target_minutes ? `/ ${goal.target_minutes}` : 'minutos'}
+                </p>
+              ) : (
+                <p className="field-hint" style={{ margin: '6px 0 0' }}>
+                  {goal ? 'O progresso anual ainda não está disponível.' : 'Defina uma meta para acompanhar seu progresso anual.'}
+                </p>
+              )}
+              {goal?.target_minutes && progress ? (
                 <div style={{ background: 'var(--surface-3)', height: '6px', borderRadius: '4px', overflow: 'hidden' }}>
                   <div
                     style={{
                       background: 'var(--brand)',
                       height: '100%',
-                      width: `${Math.min(100, Math.round(((progress?.minutes_done ?? 0) / goal.target_minutes) * 100))}%`,
+                      width: `${Math.min(100, Math.round((progress.minutes_done / goal.target_minutes) * 100))}%`,
                     }}
                   />
                 </div>

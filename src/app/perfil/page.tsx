@@ -7,6 +7,7 @@ import {
   type ProfileOverviewData,
   type ReadingHistoryItem,
 } from '@/features/profile/queries';
+import { memberLinks } from '@/lib/member-navigation';
 
 export const metadata: Metadata = { title: 'Meu espaço', robots: { index: false, follow: false } };
 
@@ -235,16 +236,15 @@ export default async function ProfilePage() {
       </header>
       <div className="member-grid">
         <nav className="member-nav" aria-label="Área pessoal">
-          <Link href="/perfil" aria-current="page">Visão geral</Link>
-          <Link href="/diario">Diário de leitura</Link>
-          <Link href="/metas">Metas do ano</Link>
-          <Link href="/minha-fila">Minha fila (Up Next)</Link>
-          <Link href="/historico">Histórico de leitura</Link>
-          <Link href="/listas">Minhas listas</Link>
-          <Link href="/leituras-compartilhadas">Leituras compartilhadas</Link>
-          <Link href="/desafios">Desafios</Link>
-          <Link href="/ranking">Ranking</Link>
-          <Link href="/notificacoes">Notificações</Link>
+          {memberLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={link.href === '/perfil' ? 'page' : undefined}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <OverviewContent data={data} />
       </div>

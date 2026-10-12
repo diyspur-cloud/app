@@ -1,5 +1,6 @@
 'use server';
 
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
 import { revalidatePath } from 'next/cache';
 
 import { createServerSupabase } from '@/lib/supabase/clients';
@@ -13,7 +14,7 @@ export async function markNotificationRead(
   _previousState: NotificationActionState,
   formData: FormData,
 ): Promise<NotificationActionState> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { status: 'error', message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { status: 'error', message: READ_ONLY_PREVIEW_MESSAGE };
   const notificationId = formData.get('notificationId');
 
   if (typeof notificationId !== 'string' || notificationId.trim().length === 0 || notificationId.length > 200) {

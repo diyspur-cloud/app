@@ -4989,6 +4989,12 @@ export type Database = {
       }
     }
     Functions: {
+      add_to_up_next_atomic: {
+        Args: {
+          p_book: string
+        }
+        Returns: number
+      }
       apply_stripe_subscription_event: {
         Args: {
           p_cancel_at_period_end: boolean
@@ -5031,6 +5037,17 @@ export type Database = {
       consume_quiz_rate_limit: {
         Args: { p_chapter: string; p_user: string }
         Returns: boolean
+      }
+      create_editorial_book: {
+        Args: {
+          p_author: string
+          p_cover?: string | null
+          p_pages?: number | null
+          p_slug: string
+          p_synopsis?: string | null
+          p_title: string
+        }
+        Returns: string
       }
       create_user_club: {
         Args: {
@@ -5237,6 +5254,10 @@ export type Database = {
       remove_club_member: {
         Args: { p_club: string; p_member: string }
         Returns: boolean
+      }
+      report_content: {
+        Args: { p_content_id: string; p_content_type: string; p_reason: string }
+        Returns: string
       }
       review_content_report: {
         Args: { p_report: string; p_status: string }

@@ -23,5 +23,15 @@ export async function getUserUpNext(userId: string): Promise<UpNextItem[]> {
     .order('position', { ascending: true });
 
   if (error || !data) return [];
-  return data as unknown as UpNextItem[];
+  return (data as unknown as Array<{
+    book_id: string;
+    position: number;
+    added_at: string;
+    book: UpNextItem['book'] | UpNextItem['book'][];
+  }>).map((item) => ({
+    book_id: item.book_id,
+    position: item.position,
+    added_at: item.added_at,
+    book: Array.isArray(item.book) ? (item.book[0] ?? null) : (item.book ?? null),
+  }));
 }

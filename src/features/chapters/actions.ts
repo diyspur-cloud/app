@@ -2,14 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createServerSupabase } from '@/lib/supabase/clients';
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
+import { requireSession } from '@/lib/auth/session';
+import type { createServerSupabase } from '@/lib/supabase/clients';
 import { commentSchema, progressSchema, type ChapterActionResult } from './schemas';
 
 async function currentUserId() {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  return !error && typeof userId === 'string' ? { supabase, userId } : null;
+  const session = await requireSession();
+  return session ? { supabase: session.client, userId: session.userId } : null;
 }
 
 async function awardActivity(supabase: Awaited<ReturnType<typeof createServerSupabase>>, source: 'finish_chapter' | 'comment', refId: string): Promise<boolean> {
@@ -29,7 +29,7 @@ async function chapterIsAvailable(supabase: Awaited<ReturnType<typeof createServ
 }
 
 export async function createChapterComment(input: unknown): Promise<ChapterActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = commentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Confira os dados do comentário.' };
   const session = await currentUserId();
@@ -51,7 +51,7 @@ export async function createChapterComment(input: unknown): Promise<ChapterActio
   const xpAwarded = insertedComment?.id ? await awardActivity(session.supabase, 'comment', insertedComment.id) : false;
   revalidatePath(`/capitulos/${chapterId}`);
   revalidatePath('/comunidade');
-  return { ok: true, message: xpAwarded ? 'Comentário publicado.' : 'Comentário publicado. O XP será sincronizado automaticamente.' } as ChapterActionResult;
+  return { ok: true, message: xpAwarded ? 'Comentário publicado.' : 'Comentário publicado. O XP será sincronizado automaticamente.' };
 }
 
 const commentEditSchema = z.object({ commentId: z.string().uuid(), chapterId: z.string().uuid(), content: z.string().trim().min(1).max(4000) });
@@ -67,7 +67,7 @@ export async function getOwnChapterCommentForEdit(input: unknown): Promise<{ ok:
 }
 
 export async function editChapterComment(input: unknown): Promise<ChapterActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = commentEditSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'O comentário informado não é válido.' };
   const session = await currentUserId();
@@ -81,7 +81,7 @@ export async function editChapterComment(input: unknown): Promise<ChapterActionR
 }
 
 export async function deleteChapterComment(input: unknown): Promise<ChapterActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = z.object({ commentId: z.string().uuid(), chapterId: z.string().uuid() }).safeParse(input);
   if (!parsed.success) return { ok: false, message: 'O comentário informado não é válido.' };
   const session = await currentUserId();
@@ -94,7 +94,7 @@ export async function deleteChapterComment(input: unknown): Promise<ChapterActio
 }
 
 export async function saveChapterProgress(input: unknown): Promise<ChapterActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = progressSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'O progresso informado não é válido.' };
   const session = await currentUserId();
@@ -124,7 +124,7 @@ export async function saveChapterProgress(input: unknown): Promise<ChapterAction
   revalidatePath('/perfil');
   revalidatePath('/historico');
   const xpAwarded = finished ? await awardActivity(session.supabase, 'finish_chapter', chapterId) : true;
-  return { ok: true, message: xpAwarded ? 'Progresso salvo.' : 'Progresso salvo. O XP será sincronizado automaticamente.' } as ChapterActionResult;
+  return { ok: true, message: xpAwarded ? 'Progresso salvo.' : 'Progresso salvo. O XP será sincronizado automaticamente.' };
 }
 
 const quizSubmissionSchema = z.object({
@@ -136,7 +136,7 @@ export type QuizSubmission = z.infer<typeof quizSubmissionSchema>;
 export type QuizResult = { ok: false; message: string } | { ok: true; score: number; total: number; duplicate: boolean };
 
 export async function submitChapterQuiz(input: unknown): Promise<QuizResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = quizSubmissionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'As respostas do quiz não são válidas.' };
   const session = await currentUserId();

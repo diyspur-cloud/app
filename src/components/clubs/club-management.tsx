@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from 'react';
 import {
-  inviteUser,
+  inviteByUsername,
   removeMember,
   revokeInvitation,
   updateClub,
 } from '@/features/clubs/actions';
 
-type Member = { user_id: string; role: string };
-type Invitation = { id: string; invited_user_id: string; expires_at: string };
+type Member = { user_id: string; role: string; displayName?: string | null; username?: string | null };
+type Invitation = { id: string; invited_user_id: string; expires_at: string; displayName?: string | null; username?: string | null };
 type SeasonOption = { id: string; title: string; slug: string };
 
 export function ClubManagement({
@@ -52,10 +52,9 @@ export function ClubManagement({
 
   function invite(form: FormData) {
     start(async () => {
-      const result = await inviteUser({
+      const result = await inviteByUsername({
         clubId: club.id,
-        invitedUserId: form.get('userId'),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        username: form.get('username'),
       });
       setFeedback(result.message);
     });
@@ -114,11 +113,11 @@ export function ClubManagement({
 
       <form className="auth-form" action={invite}>
         <label>
-          ID do usuário convidado
-          <input className="field" name="userId" required placeholder="UUID do perfil" />
+          Nome de usuário (@leitor)
+          <input className="field" name="username" required placeholder="@nome_do_leitor" />
         </label>
         <button className="button button-quiet button-small" disabled={busy}>
-          Criar convite por 7 dias
+          Convidar leitor por 7 dias
         </button>
       </form>
 
@@ -128,7 +127,8 @@ export function ClubManagement({
           {invitations.map((inv) => (
             <div className="timeline-row" key={inv.id}>
               <span>
-                {inv.invited_user_id} · expira em{' '}
+                {inv.displayName ?? (inv.username ? `@${inv.username}` : `${inv.invited_user_id.slice(0, 8)}…`)}
+                {' · expira em '}
                 {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(
                   new Date(inv.expires_at)
                 )}
@@ -154,7 +154,9 @@ export function ClubManagement({
         {members.map((member) => (
           <div className="timeline-row" key={member.user_id}>
             <span>
-              {member.user_id} · {member.role}
+              {member.displayName ?? (member.username ? `@${member.username}` : 'Leitor')}
+              {' · '}
+              {member.role === 'owner' ? 'Responsável' : 'Membro'}
             </span>
             {member.role !== 'owner' && (
               <button

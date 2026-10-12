@@ -6,7 +6,7 @@ Estas instruções valem para qualquer agente que opere neste repositório. Obje
 
 - **Next.js App Router 16.4 / React 19.3 / TypeScript 5.9 (`strict`)**; entrypoints de rota em `src/app`, layout global em `src/app/layout.tsx`.
 - **Supabase**: `@supabase/ssr` + `@supabase/supabase-js`. `src/lib/supabase/clients.ts` é server-only; `src/lib/supabase/browser.ts` é apenas client. O `proxy.ts` conecta a renovação de sessão SSR.
-- **Validação**: Zod 4.1. **UI**: React + CSS próprio em `src/styles/`; não há Tailwind, shadcn ou outro kit atualmente. **Testes**: Vitest para unit e Playwright para E2E.
+- **Validação**: Zod 4.1. **UI**: React + CSS próprio em `src/styles/`;shadcn ou outro kit atualmente. **Testes**: Vitest para unit e Playwright para E2E.
 - Schema e lógica backend estão em outro repositório: `diyspur-cloud/db`. `src/types/database.ts` é tipagem sincronizada/gerada desse schema e não deve ser editada manualmente como fonte de verdade.
 - Detalhes de tokens, flows e comandos estão em [`CLAUDE.md`](./CLAUDE.md) e [`README.md`](./README.md). Leia ambos antes de mudanças grandes.
 
@@ -26,8 +26,9 @@ Estas instruções valem para qualquer agente que opere neste repositório. Obje
 - Desenvolva **Mobile First**: todo componente deve renderizar perfeitamente no viewport de `375px` antes de expandir via `@media (min-width: ...)`. CTAs em smartphones ocupam largura total (`.btn-block`), e hit targets devem ter no mínimo $48\text{px}$.
 - Tipografia oficial é **Inter** (`--font-body`, `--font-display`). Não reintroduza fontes serifadas em títulos sem justificativa formal.
 - Breakpoints de teste: **375, 640, 768, 860, 1024 e 1440px**. Não permita rolagem horizontal no documento (`scrollWidth <= clientWidth`).
-- **Regra anti-duplicação de temporadas**: Na página `/temporadas/[slug]`, nunca renderize cards redundantes de milestones quando o capítulo com o mesmo número já existir na timeline; higienize títulos que repitam `"Capítulo X — "`.
-- Preserve acessibilidade: labels semânticos, skip link, foco visível (`:focus-visible`), roles apropriados (`role="switch"`, `aria-checked`), e suporte a `prefers-reduced-motion`.
+- **Regra anti-duplicação de temporadas e capítulos**: Na página `/temporadas/[slug]` e no feed de discussões, use `cleanChapterTitle` e `chapterLabel` (`src/lib/chapter-label.ts`) para evitar repetições de `"Capítulo X — "`. Milestones com mesmo número compartilham a linha do capítulo.
+- **Landmark `<main>` Único**: Cada rota deve conter rigorosamente **1 elemento `<main>`** (fornecido por `src/app/layout.tsx`). Nunca aninhe `<main>` em componentes de página ou cards.
+- Preserve acessibilidade: labels semânticos, skip link, foco visível (`:focus-visible`), roles apropriados (`role="switch"`, `aria-checked`), e suporte a `prefers-reduced-motion`. Use `supportEmail` (`src/lib/site-contact.ts`) para referências de contato e `memberLinks` (`src/lib/member-navigation.ts`) para navegação pessoal unificada.
 
 ## TypeScript, React e lint
 

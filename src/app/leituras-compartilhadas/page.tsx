@@ -248,7 +248,10 @@ export default async function SharedReadsPage() {
           <div className="empty-state-mark" aria-hidden="true">◎</div>
           <h2>Nenhuma leitura compartilhada ainda</h2>
           <p>Quando você organizar ou receber acesso a uma leitura em grupo, os checkpoints aparecerão aqui.</p>
-          <div className="empty-actions"><Link className="button button-dark button-small" href="/livros">Explorar livros</Link></div>
+          <div className="empty-actions">
+            <Link className="button button-dark button-small" href="/livros">Explorar livros</Link>
+            <Link className="button button-quiet button-small" href="/clubes">Conhecer clubes</Link>
+          </div>
         </div>
       )}
     </section>

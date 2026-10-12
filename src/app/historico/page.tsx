@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getReadingHistory, type ReadingHistoryItem } from '@/features/profile/queries';
+import { memberLinks } from '@/lib/member-navigation';
+import { cleanChapterTitle } from '@/lib/chapter-label';
 
 export const metadata: Metadata = { title: 'Minha leitura', robots: { index: false, follow: false } };
 
@@ -28,7 +30,7 @@ function HistoryRow({ item }: { item: ReadingHistoryItem }) {
   return (
     <article className="timeline-row">
       <div>
-        <h3><Link href={`/capitulos/${item.chapter.id}`}>{item.chapter.title}</Link></h3>
+        <h3><Link href={`/capitulos/${item.chapter.id}`}>{cleanChapterTitle(item.chapter.title, item.chapter.number)}</Link></h3>
         <p>
           <Link className="text-link" href={`/livros/${item.book.slug}`}>{item.book.title}</Link>
           {' · '}
@@ -82,13 +84,17 @@ export default async function HistoryPage() {
       </header>
       <div className="member-grid">
         <nav className="member-nav" aria-label="Área pessoal">
-          <Link href="/perfil">Visão geral</Link>
-          <Link href="/historico" aria-current="page">Minha leitura</Link>
-          <Link href="/desafios">Desafios</Link>
-          <Link href="/ranking">Ranking</Link>
-          <Link href="/notificacoes">Notificações</Link>
+          {memberLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={link.href === '/historico' ? 'page' : undefined}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
-        <main className="member-card">
+        <div className="member-card">
           {history.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-mark" aria-hidden="true">⌁</div>
@@ -105,7 +111,7 @@ export default async function HistoryPage() {
               <HistorySection id="other-reading-title" eyebrow="Outros registros" title="Outras marcações" items={other} />
             </>
           )}
-        </main>
+        </div>
       </div>
     </section>
   );

@@ -4,38 +4,31 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/auth/session';
 import { mapDatabaseError } from '@/lib/actions/database-errors';
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
 
 const bookIdSchema = z.string().uuid();
 
 export async function addToUpNext(bookId: string) {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = bookIdSchema.safeParse(bookId);
   if (!parsed.success) return { ok: false, message: 'Livro inválido.' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para adicionar livros à sua fila.' };
 
-  const { data: existing } = await session.client
-    .from('user_up_next')
-    .select('position')
-    .eq('user_id', session.userId)
-    .order('position', { ascending: false })
-    .limit(1);
+  const { error } = await session.client.rpc('add_to_up_next_atomic', {
+    p_book: parsed.data,
+  });
 
-  const nextPos = (existing?.[0]?.position ?? -1) + 1;
-
-  const { error } = await session.client
-    .from('user_up_next')
-    .upsert({
-      user_id: session.userId,
-      book_id: parsed.data,
-      position: nextPos,
-    }, { onConflict: 'user_id,book_id' });
-
+  if (error?.message?.includes('queue_full')) {
+    return { ok: false, message: 'Sua fila já tem cinco livros. Remova um para continuar.' };
+  }
   if (error) return { ok: false, ...mapDatabaseError(error.code) };
   revalidatePath('/minha-fila');
-  return { ok: true, message: 'Livro adicionado à sua fila!' };
+  return { ok: true, message: 'Livro guardado na sua fila.' };
 }
 
 export async function removeFromUpNext(bookId: string) {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = bookIdSchema.safeParse(bookId);
   if (!parsed.success) return { ok: false, message: 'Livro inválido.' };
   const session = await requireSession();

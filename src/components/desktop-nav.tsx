@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { memberLinks } from '@/lib/member-navigation';
+
 export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
   const [openDropdown, setOpenDropdown] = useState<'explore' | 'community' | 'personal' | null>(null);
   const pathname = usePathname();
@@ -39,12 +41,9 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
     pathname.startsWith('/comunidade') ||
     pathname.startsWith('/calendario') ||
     pathname.startsWith('/votacao');
-  const isPersonalActive =
-    pathname.startsWith('/diario') ||
-    pathname.startsWith('/metas') ||
-    pathname.startsWith('/minha-fila') ||
-    pathname.startsWith('/listas') ||
-    pathname.startsWith('/ranking');
+  const isPersonalActive = memberLinks.some(
+    (link) => pathname === link.href || pathname.startsWith(link.href + '/')
+  );
   const isJournalActive = pathname.startsWith('/diario');
 
   return (

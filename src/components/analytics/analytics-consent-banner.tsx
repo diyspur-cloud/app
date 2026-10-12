@@ -44,14 +44,14 @@ export function AnalyticsConsentBanner() {
             Recusar não impede o uso do clube.
           </p>
           <div className="analytics-consent-actions">
-            <button type="button" onClick={() => choose('granted')}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => choose('granted')}>
               Aceitar analytics
             </button>
-            <button type="button" onClick={() => choose('denied')}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => choose('denied')}>
               Recusar
             </button>
             {choice !== null && (
-              <button type="button" onClick={() => setOpen(false)}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>
                 Cancelar
               </button>
             )}

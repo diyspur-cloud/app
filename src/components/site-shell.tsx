@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/clients';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DesktopNav } from '@/components/desktop-nav';
 import { MobileNav } from '@/components/mobile-nav';
+import { supportEmail } from '@/lib/site-contact';
 
 export async function SiteHeader() {
   let signedIn = false;
@@ -60,7 +61,7 @@ export function SiteFooter() {
         <div className="footer-links">
           <Link href="/privacidade">Privacidade</Link>
           <Link href="/termos">Termos</Link>
-          <a href="mailto:oi@diyspur.com">Suporte</a>
+          <a href={`mailto:${supportEmail}`}>Suporte</a>
         </div>
         <p className="footer-affiliate-note" style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', margin: '8px 0 0', textAlign: 'center', maxWidth: '580px' }}>
           O DIYSPUR participa do Programa de Associados da Amazon. Compras qualificadas geram comissão que apoia a manutenção do clube sem custo adicional para o leitor.

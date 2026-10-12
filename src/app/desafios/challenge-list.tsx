@@ -132,7 +132,7 @@ export function ChallengeList({
       </div>
       <div className="notice" style={{ marginTop: 20 }}>
         <strong>Seu progresso é atualizado pelas atividades do clube.</strong>
-        <p style={{ marginTop: 7 }}>A inscrição é privada e idempotente; a conclusão não pode ser marcada manualmente.</p>
+        <p style={{ marginTop: 7 }}>Sua participação é privada. O progresso acompanha suas atividades de leitura e a conclusão é registrada automaticamente.</p>
       </div>
     </>
   );

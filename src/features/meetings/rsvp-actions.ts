@@ -1,5 +1,6 @@
 'use server';
 
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createServerSupabase } from '@/lib/supabase/clients';
@@ -82,7 +83,7 @@ export async function getMeetingRsvpMap(meetingIds: string[]): Promise<Record<st
 }
 
 export async function setMeetingRsvp(input: unknown): Promise<MeetingRsvpActionResult> {
-  if (process.env.DIYSPUR_READ_ONLY_PREVIEW === '1') return { ok: false, message: 'A prévia pública está em modo somente leitura.' };
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = meetingRsvpInputSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: 'O RSVP informado não é válido.' };

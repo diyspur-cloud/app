@@ -521,3 +521,42 @@ Esta release conclui a implementação das recomendações prioritárias da audi
 - **ESLint (`eslint .`):** 0 avisos ou erros.
 - **Vitest (`vitest run`):** 31 testes aprovados em 8 suítes unitárias (`analytics`, `calendar-links`, `chapter-schemas`, `goals-schemas`, `meeting-state`, `newsletter-schemas`, `polls`, `safe-redirect`).
 - **Turbopack Build (`next build`):** 32 rotas estáticas e dinâmicas compiladas com sucesso para produção.
+
+---
+
+## Release de Remediação da Auditoria de QA e UX — 2026-10-12
+
+Esta release executa todas as melhorias e correções aprovadas no plano de remediação integral (QA-01 a QA-17):
+
+### 1. Fila de Leitura e Catálogo (QA-01, QA-02)
+- **QA-01 (Fila Atômica no Backend):** Criação da migration `20261012160000_add_to_up_next_atomic.sql` com advisory lock transacional, distribuição ordenada 1..5 e tratamento de duplicações; tipos sincronizados em `src/types/database.ts` e Server Action `addToUpNext` conectada.
+- **QA-02 (Botão de Fila na Ficha do Livro):** Componente `AddQueueButton` (`src/components/up-next/add-queue-button.tsx`) inserido condicionalmente em `/livros/[slug]`, com verificação de login, prevenção de escrita em preview e feedback visual imediato.
+
+### 2. Criação Editorial e Auditoria (QA-03, QA-12)
+- **QA-03 / QA-12 (Cadastro de Obras no Admin):** Migration `20261012161000_create_editorial_book.sql` com checagem estrita de `is_admin()`, sanitização de dados e auditoria transacional em `editorial_audit_log`; Server Action `createBook`, endurecimento de `updateBook` com retorno `not_found` seguro e revalidação de rotas; interface `BookCreator` no painel `/admin/books`.
+
+### 3. Metas de Leitura e Clubes (QA-04, QA-05)
+- **QA-04 (Metas sem Zero Fictício):** Distinção clara em `/metas` entre ausência de meta configurada e progresso zerado, substituindo falsos zeros por card encorajador de boas-vindas.
+- **QA-05 (Identificação por @usuário):** Substituição de UUIDs por `@username` e nome de exibição nos cards de membros e convites de clubes (`src/components/clubs/club-management.tsx`); tradução de papéis (`Criador`, `Moderador`, `Leitor`); action `inviteByUsername` consultando `v_profiles_public`.
+
+### 4. Navegação, Landmarks e Acessibilidade (QA-06, QA-10, QA-11)
+- **QA-06 (Navegação Pessoal Unificada):** Módulo centralizado `src/lib/member-navigation.ts` com os 10 links pessoais (`memberLinks`), sincronizado em `DesktopNav`, `MobileNav`, `/perfil` e `/historico`.
+- **QA-10 (Deduplicação de Títulos de Capítulos):** Utilitários `cleanChapterTitle` e `chapterLabel` (`src/lib/chapter-label.ts`) eliminando repetições como `"Capítulo 1 · Capítulo 1 — Início"` em `/comunidade`, `/historico` e `/capitulos/[id]`.
+- **QA-11 (Landmark `<main>` Único):** Substituição de `<main className="member-card">` por `<div>` em `/historico`, garantindo estritamente um elemento `<main id="conteudo">` por página.
+
+### 5. Fuso Horário e Encontros Futuros (QA-13, QA-14)
+- **QA-13 (Horário Local no Editor Administrativo):** Função `toLocalDateTime` (`src/components/admin/admin-controls.tsx`) convertendo strings ISO UTC para o formato local `YYYY-MM-DDTHH:mm` esperado por `<input type="datetime-local">`, eliminando drift de fuso (+3h).
+- **QA-14 (Filtro de Encontros Futuros):** Query `getUpcomingMeetings` filtrando status `scheduled`/`live` e data futura; na temporada ativa, amarração obrigatória dos encontros aos capítulos do ciclo.
+
+### 6. Microcópia, Privacidade e Marca (QA-07, QA-15, QA-16, QA-17)
+- **QA-07 (Banner e Preferências de Privacidade):** Estilização de `.privacy-preferences-trigger` e `.analytics-consent` com touch targets $\ge 48\text{px}$ e botões padronizados `.btn`.
+- **QA-15 (Inspeção de Resíduos de Teste):** Script SQL read-only `db/scripts/ops/inspect-qa-residual.sql` e diretrizes de higiene documentadas.
+- **QA-16 (Microcópia Humanizada):** Substituição de jargões técnicos ("idempotente") em `/desafios`, instruções em minutos/segundos em `timed-comment-list.tsx`, `ShareBookButton` com feedback único e fallback de erro, e link para explorar clubes em `/leituras-compartilhadas`.
+- **QA-17 (Marca Única e E-mail Centralizado):** Módulo `src/lib/site-contact.ts` exportando `supportEmail = 'oi@diyspur.com'`, aplicado em rodapés, termos e privacidade; remoção de `| DIYSPUR` duplicado de `/livros/[slug]`.
+
+### 7. Estado de Validação Integral
+- **TypeScript (`tsc --noEmit`):** 0 erros.
+- **ESLint (`eslint .`):** 0 erros e 0 avisos.
+- **Vitest (`vitest run`):** 94 testes aprovados em 26 suítes unitárias.
+- **Plano de Deploy Oficial:** Consulte [`../docs/deploy/README.md`](../docs/deploy/README.md) para as instruções completas com interação no navegador web.
+

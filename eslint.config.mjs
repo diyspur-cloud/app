@@ -3,5 +3,11 @@ import tseslint from 'typescript-eslint';
 const eslintConfig = tseslint.config(
   ...tseslint.configs.recommended,
   { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'src/types/database.ts'] },
+  {
+    files: ['tests/**'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 );
 export default eslintConfig;

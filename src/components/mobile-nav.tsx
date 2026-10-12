@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { memberLinks } from '@/lib/member-navigation';
+
 export interface NavSection {
   title: string;
   items: { href: string; label: string }[];
@@ -27,12 +29,7 @@ const defaultSections: NavSection[] = [
   },
   {
     title: 'Pessoal',
-    items: [
-      { href: '/diario', label: 'Diário de leitura' },
-      { href: '/listas', label: 'Minhas listas' },
-      { href: '/metas', label: 'Metas anuais' },
-      { href: '/minha-fila', label: 'Minha fila (Up Next)' },
-    ],
+    items: memberLinks.map((link) => ({ href: link.href, label: link.label })),
   },
 ];
 

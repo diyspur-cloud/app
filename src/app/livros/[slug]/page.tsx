@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getBook } from '@/features/catalog/queries';
 import { AddBookToList } from '@/components/lists/add-book-to-list';
+import { AddQueueButton } from '@/components/up-next/add-queue-button';
 import { ShareBookButton } from '@/components/books/share-book-button';
 import { JsonLd } from '@/components/json-ld';
 
@@ -11,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const book = await getBook(slug);
   const authorName = book?.authors?.name ? ` por ${book.authors.name}` : '';
-  const title = book ? `${book.title} — Clube de Leitura e Discussão | DIYSPUR` : 'Livro não encontrado | DIYSPUR';
+  const title = book ? `${book.title} — Clube de Leitura e Discussão` : 'Livro não encontrado';
   const description = book?.synopsis
     ? `Participe do clube de leitura de ${book.title}${authorName}. Cronograma de capítulos, avisos de conteúdo e debates ao vivo sem spoilers no DIYSPUR.`
     : (book ? `Conheça ${book.title} no clube de leitura DIYSPUR.` : undefined);
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           images: book.cover_url ? [book.cover_url] : undefined,
         },
       }
-    : { title: 'Livro não encontrado | DIYSPUR' };
+    : { title: 'Livro não encontrado' };
 }
 
 export default async function BookDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -165,15 +166,21 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
               </div>
             </div>
 
-            {book.readerLists ? (
-              <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              {book.signedIn ? (
+                <AddQueueButton bookId={book.id} />
+              ) : (
+                <Link
+                  className="btn btn-secondary btn-sm"
+                  href={`/entrar?redirect=${encodeURIComponent(`/livros/${book.slug}`)}`}
+                >
+                  Entrar para guardar na fila
+                </Link>
+              )}
+              {book.readerLists ? (
                 <AddBookToList bookId={book.id} lists={book.readerLists} />
-              </div>
-            ) : (
-              <p className="field-hint" style={{ marginTop: '16px' }}>
-                Entre para guardar este livro em uma lista privada.
-              </p>
-            )}
+              ) : null}
+            </div>
           </div>
         </div>
       </header>

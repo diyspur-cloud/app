@@ -17,7 +17,11 @@ export type ReadingGoalProgress = {
   updated_at: string;
 };
 
-export async function getUserReadingGoal(userId: string, year = new Date().getFullYear()) {
+export async function getUserReadingGoal(userId: string, year = new Date().getFullYear()): Promise<{
+  goal: ReadingGoal | null;
+  progress: ReadingGoalProgress | null;
+  error: boolean;
+}> {
   const client = await createServerSupabase();
   const { data: goal, error } = await client
     .from('reading_goals')
@@ -26,13 +30,18 @@ export async function getUserReadingGoal(userId: string, year = new Date().getFu
     .eq('year', year)
     .maybeSingle();
 
-  if (error || !goal) return { goal: null, progress: null };
+  if (error) return { goal: null, progress: null, error: true };
+  if (!goal) return { goal: null, progress: null, error: false };
 
-  const { data: progress } = await client
+  const { data: progress, error: progressError } = await client
     .from('reading_goal_progress')
     .select('goal_id,books_done,pages_done,minutes_done,updated_at')
     .eq('goal_id', goal.id)
     .maybeSingle();
 
-  return { goal: goal as ReadingGoal, progress: progress as ReadingGoalProgress | null };
+  return {
+    goal: goal as ReadingGoal,
+    progress: progress as ReadingGoalProgress | null,
+    error: Boolean(progressError),
+  };
 }

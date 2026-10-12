@@ -58,9 +58,29 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
               .in('status', ['active', 'finished'])
               .order('starts_at', { ascending: false }),
           ]);
+
+          const rawMembers = members ?? [];
+          const rawInvitations = invitations ?? [];
+          const userIds = [...new Set([
+            ...rawMembers.map((m) => m.user_id),
+            ...rawInvitations.map((i) => i.invited_user_id),
+          ])];
+          const { data: profiles } = userIds.length
+            ? await client.from('v_profiles_public').select('id,display_name,username').in('id', userIds)
+            : { data: [] };
+          const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
           return {
-            members: members ?? [],
-            invitations: invitations ?? [],
+            members: rawMembers.map((m) => ({
+              ...m,
+              displayName: profileMap.get(m.user_id)?.display_name ?? null,
+              username: profileMap.get(m.user_id)?.username ?? null,
+            })),
+            invitations: rawInvitations.map((i) => ({
+              ...i,
+              displayName: profileMap.get(i.invited_user_id)?.display_name ?? null,
+              username: profileMap.get(i.invited_user_id)?.username ?? null,
+            })),
             seasons: seasons ?? [],
           };
         })()

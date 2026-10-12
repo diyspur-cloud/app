@@ -12,6 +12,7 @@ export type Book = {
   authors?: { name: string; bio?: string | null; website_url?: string | null; instagram?: string | null } | null;
   warnings?: { label: string; description: string | null; severity: string; is_community: boolean }[];
   readerLists?: { id: string; title: string }[];
+  signedIn?: boolean;
 };
 export type Season = { id: string; number: number; title: string; slug: string; book_id: string; status: string; description: string | null; starts_at: string | null; ends_at: string | null; cover_url: string | null };
 export type Chapter = { id: string; season_id: string; number: number; title: string; reading_range: string | null; youtube_url: string | null; summary: string | null; published_at: string | null };
@@ -48,7 +49,7 @@ export const getBook = cache(async (slug: string) => {
     readerId ? client.from('reading_lists').select('id,title').eq('owner_id', readerId).order('updated_at', { ascending: false }).limit(30) : Promise.resolve({ data: [], error: null }),
   ]);
   const warningRows = (warnings.data ?? []) as unknown as { severity: string; is_community: boolean; warning: { label: string; description: string | null } | null }[];
-  return { ...book, authors: author.data, seasons: (seasons.data ?? []) as Season[], warnings: warningRows.flatMap((row) => row.warning ? [{ label: row.warning.label, description: row.warning.description, severity: row.severity, is_community: row.is_community }] : []), readerLists: (readerLists.data ?? []) as { id: string; title: string }[] };
+  return { ...book, authors: author.data, seasons: (seasons.data ?? []) as Season[], warnings: warningRows.flatMap((row) => row.warning ? [{ label: row.warning.label, description: row.warning.description, severity: row.severity, is_community: row.is_community }] : []), readerLists: (readerLists.data ?? []) as { id: string; title: string }[], signedIn: Boolean(readerId) };
 });
 
 export const getSeason = cache(async (slug: string) => {
@@ -89,14 +90,28 @@ export const getActiveSeason = cache(async (): Promise<ActiveSeasonInfo | null> 
 
   if (error || !season) return null;
 
-  const [bookResult, chaptersResult, meetingsResult] = await Promise.all([
+  const [bookResult, chaptersResult] = await Promise.all([
     client.from('books').select('id,title,slug,cover_url,total_chapters,total_pages').eq('id', season.book_id).maybeSingle(),
     client.from('chapters').select('id,number,published_at').eq('season_id', season.id).order('number', { ascending: true }),
-    client.from('meetings').select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda').gte('scheduled_at', new Date().toISOString()).order('scheduled_at', { ascending: true }).limit(1).maybeSingle(),
   ]);
 
   const chapters = chaptersResult.data ?? [];
+  const chapterIds = chapters.map((c) => c.id);
   const now = Date.now();
+  const nowIso = new Date().toISOString();
+
+  const meetingsResult = chapterIds.length
+    ? await client
+        .from('meetings')
+        .select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda')
+        .in('status', ['scheduled', 'live'])
+        .in('chapter_id', chapterIds)
+        .gte('scheduled_at', nowIso)
+        .order('scheduled_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
   const published = chapters.filter((c) => !c.published_at || Date.parse(c.published_at) <= now).length;
 
   return {
@@ -106,6 +121,24 @@ export const getActiveSeason = cache(async (): Promise<ActiveSeasonInfo | null> 
     publishedChapters: published,
     nextMeeting: (meetingsResult.data as Meeting | null) ?? null,
   };
+});
+
+export const getUpcomingMeetings = cache(async (limit: number = 6): Promise<Meeting[]> => {
+  const client = await createServerSupabase();
+  const now = new Date().toISOString();
+  const { data, error } = await client
+    .from('meetings')
+    .select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda')
+    .in('status', ['scheduled', 'live'])
+    .gte('scheduled_at', now)
+    .order('scheduled_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error('Upcoming meetings query failed', error.code);
+    return [];
+  }
+  return (data ?? []) as Meeting[];
 });
 
 export const getMeetings = cache(async (): Promise<Meeting[]> => {

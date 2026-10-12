@@ -8,7 +8,7 @@ interface ShareBookButtonProps {
 }
 
 export function ShareBookButton({ bookTitle, bookSlug }: ShareBookButtonProps) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle');
 
   async function handleShare() {
     const url = typeof window !== 'undefined' ? `${window.location.origin}/livros/${bookSlug}` : `/livros/${bookSlug}`;
@@ -29,15 +29,16 @@ export function ShareBookButton({ bookTitle, bookSlug }: ShareBookButtonProps) {
 
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setStatus('copied');
+      setTimeout(() => setStatus('idle'), 3000);
     } catch {
-      // Fallback silencioso
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 4000);
     }
   }
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
       <button
         type="button"
         className="btn btn-secondary btn-sm"
@@ -45,11 +46,16 @@ export function ShareBookButton({ bookTitle, bookSlug }: ShareBookButtonProps) {
         aria-label={`Convidar amigos para ler ${bookTitle} juntos`}
       >
         <span aria-hidden="true">🤝</span>{' '}
-        {copied ? '✓ Link copiado!' : 'Convidar amigo para ler junto'}
+        Convidar amigo para ler junto
       </button>
-      {copied && (
+      {status === 'copied' && (
         <span className="field-hint" role="status" style={{ color: 'var(--positive-text)' }}>
-          Link copiado para a área de transferência!
+          ✓ Link copiado para a área de transferência!
+        </span>
+      )}
+      {status === 'error' && (
+        <span className="field-hint" role="alert" style={{ color: 'var(--color-danger, #d32f2f)' }}>
+          Não foi possível copiar automaticamente. Acesse a barra de endereço para compartilhar.
         </span>
       )}
     </div>

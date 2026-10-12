@@ -82,11 +82,11 @@ export function TimedCommentList({ comments, chapterId, signedIn, videoUrl, head
       </div>
     </div>
     {signedIn ? <form className="comment-composer" onSubmit={submitComment}>
-      <label className="field-group"><span>Segundo do vídeo</span><input className="field" name="videoSec" type="number" min="0" max="86400" step="1" required aria-describedby="timed-comment-hint" /></label>
+      <label className="field-group"><span>Momento no vídeo (em segundos)</span><input className="field" name="videoSec" type="number" min="0" max="86400" step="1" required placeholder="Ex.: 90" aria-describedby="timed-comment-hint" /></label>
       <label className="field-group"><span>Seu comentário</span><textarea className="field" name="content" minLength={1} maxLength={2000} rows={3} required aria-describedby="timed-comment-hint" placeholder="Compartilhe uma ideia sobre este momento…" /></label>
       <label className="checkbox-line"><input type="checkbox" checked={spoiler} onChange={(event) => setSpoiler(event.target.checked)} /> Este comentário contém spoiler</label>
       {spoiler && <label className="field-group"><span>Mostrar quando o progresso chegar a</span><select className="field" name="minPercent" defaultValue="100"><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100% do capítulo</option></select></label>}
-      <p className="field-hint" id="timed-comment-hint">Use segundos inteiros (até 24 horas). Spoilers são mascarados no servidor até o progresso definido.</p>
+      <p className="field-hint" id="timed-comment-hint">Exemplo: para 1 minuto e 30 segundos, digite 90. Spoilers ficam protegidos até você alcançar o progresso escolhido.</p>
       <button className="button button-small" type="submit" disabled={busy}>{busy ? 'Publicando…' : 'Comentar neste momento'}</button>
       {feedback && <p className={feedback.ok ? 'action-feedback' : 'action-feedback'} role={feedback.ok ? 'status' : 'alert'}>{feedback.message}</p>}
     </form> : <p className="notice">Entre para comentar sobre um momento do vídeo. <a className="text-link" href={`/entrar?redirect=${encodeURIComponent(`/capitulos/${chapterId}`)}`}>Entrar →</a></p>}

@@ -94,7 +94,13 @@ Use a ordem de tokens **primitivo → semântico → componente**. Prefira os to
   - Regra obrigatória em `/temporadas/[slug]`: milestones e capítulos com mesmo número compartilham a mesma linha; suprimir cards de milestones redundantes.
   - Títulos são higienizados removendo repetições de `"Capítulo X — "`.
   - Breadcrumbs não repetem o nome da temporada.
-- **Componentes Auxiliares**: `EmptyState` (`src/components/empty-state.tsx`) e `SubmitButton` (`src/components/submit-button.tsx`) com pending state nativo do React.
+- **Componentes e Utilitários Auxiliares**:
+  - `cleanChapterTitle` e `chapterLabel` (`src/lib/chapter-label.ts`): remove prefixos redundantes de capítulos e formata labels limpos.
+  - `memberLinks` (`src/lib/member-navigation.ts`): centraliza os 10 links da área pessoal em desktop, mobile, perfil e histórico.
+  - `supportEmail` (`src/lib/site-contact.ts`): define o e-mail canônico de contato e suporte (`oi@diyspur.com`).
+  - `toLocalDateTime` (`src/components/admin/admin-controls.tsx`): converte timestamps ISO UTC para horário local do dispositivo sem drift em campos `<input type="datetime-local">`.
+  - `EmptyState` (`src/components/empty-state.tsx`) e `SubmitButton` (`src/components/submit-button.tsx`) com pending state nativo do React.
+- **Landmark `<main>` Único**: O elemento `<main id="conteudo">` em `src/app/layout.tsx` é o único landmark `<main>` do documento. Páginas internas devem utilizar `<section>`, `<article>` ou `<div>`, nunca um segundo `<main>`.
 
 Breakpoints de teste: **375, 640, 768, 860, 1024 e 1440px**. Mantenha HTML semântico, `<html lang="pt-BR">`, labels, alt text, `aria-label`, skip link, foco de teclado visível (`:focus-visible`) e ausência de rolagem horizontal.
 

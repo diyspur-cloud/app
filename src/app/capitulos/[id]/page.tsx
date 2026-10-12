@@ -9,6 +9,7 @@ import { getChapters } from '@/features/catalog/queries';
 import { getTimedComments } from '@/features/video-comments/queries';
 import type { Metadata } from 'next';
 import { createServerSupabase } from '@/lib/supabase/clients';
+import { chapterLabel, cleanChapterTitle } from '@/lib/chapter-label';
 
 export async function generateMetadata({
   params,
@@ -25,8 +26,8 @@ export async function generateMetadata({
     };
   }
   return {
-    title: result.chapter.title,
-    description: result.chapter.summary ?? `Leitura guiada de ${result.chapter.title}.`,
+    title: chapterLabel(result.chapter.title, result.chapter.number),
+    description: result.chapter.summary ?? `Leitura guiada de ${chapterLabel(result.chapter.title, result.chapter.number)}.`,
   };
 }
 
@@ -145,7 +146,7 @@ export default async function ChapterPage({
           <span>Capítulo {chapter.number}</span>
         </nav>
         <span className="eyebrow">Capítulo {chapter.number}</span>
-        <h1>{chapter.title}</h1>
+        <h1>{cleanChapterTitle(chapter.title, chapter.number)}</h1>
         <p>{chapter.reading_range ?? 'Um novo capítulo, uma nova conversa.'}</p>
       </header>
 

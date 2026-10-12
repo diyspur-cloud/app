@@ -59,7 +59,39 @@ async function audit(
   action: string,
   changes: Record<string, unknown>,
 ) {
-  await client.from('editorial_audit_log').insert({ actor_id: actorId, entity_type: entityType, entity_id: entityId, action, changes });
+  const { error } = await client.from('editorial_audit_log').insert({ actor_id: actorId, entity_type: entityType, entity_id: entityId, action, changes });
+  if (error) console.error('Editorial audit log write failed', entityType, action, error.code);
+}
+
+const createBookSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(200),
+  authorId: uuid,
+  synopsis: z.string().trim().max(20000),
+  coverUrl: z.string().url().refine((v) => v.startsWith('https://')).or(z.literal('')),
+  totalPages: z.coerce.number().int().positive().nullable(),
+}).strict();
+
+export async function createBook(input: unknown): Promise<AdminResult> {
+  const parsed = createBookSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: 'Confira os dados do livro.', code: 'validation' };
+  const session = await adminContext();
+  if (!session) return { ok: false, message: 'Acesso restrito à equipe editorial.', code: 'forbidden' };
+  const { title, slug, authorId, synopsis, coverUrl, totalPages } = parsed.data;
+
+  const { error } = await session.client.rpc('create_editorial_book', {
+    p_title: title,
+    p_slug: slug,
+    p_author: authorId,
+    p_synopsis: synopsis || null,
+    p_cover: coverUrl || null,
+    p_pages: totalPages,
+  });
+
+  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  revalidatePath('/admin/books');
+  revalidatePath('/livros');
+  return { ok: true, message: 'Livro cadastrado com sucesso.' };
 }
 
 export async function updateBook(input: unknown): Promise<AdminResult> {
@@ -68,11 +100,21 @@ export async function updateBook(input: unknown): Promise<AdminResult> {
   const session = await adminContext();
   if (!session) return { ok: false, message: 'Acesso restrito à equipe editorial.', code: 'forbidden' };
   const { id, title, synopsis, coverUrl, totalPages } = parsed.data;
-  const { error } = await session.client.from('books').update({ title, synopsis: synopsis || null, cover_url: coverUrl || null, total_pages: totalPages }).eq('id', id);
+
+  const { data: saved, error } = await session.client
+    .from('books')
+    .update({ title, synopsis: synopsis || null, cover_url: coverUrl || null, total_pages: totalPages })
+    .eq('id', id)
+    .select('id,slug')
+    .maybeSingle();
+
   if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (!saved) return { ok: false, code: 'not_found', message: 'O livro não foi encontrado.' };
+
   await audit(session.client, session.userId, 'book', id, 'update', { title, synopsis, cover_url: coverUrl || null, total_pages: totalPages });
   revalidatePath('/admin/books');
   revalidatePath('/livros');
+  revalidatePath(`/livros/${saved.slug}`);
   return { ok: true, message: 'Livro salvo.' };
 }
 

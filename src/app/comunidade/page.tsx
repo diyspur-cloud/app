@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/clients';
 import { ReportButton } from '@/components/moderation/report-button';
 import { CommentSpoilerCard } from '@/components/comments/comment-spoiler-card';
+import { chapterLabel } from '@/lib/chapter-label';
 
 export const metadata: Metadata = {
   title: 'Comunidade',
@@ -84,7 +85,7 @@ export default async function CommunityPage() {
                 <article className="member-card" key={post.id}>
                   {chapter && (
                     <Link className="field-hint" href={`/capitulos/${chapter.id}`}>
-                      Capítulo {chapter.number} · {chapter.title}
+                      {chapterLabel(chapter.title, chapter.number)}
                     </Link>
                   )}
                   <CommentSpoilerCard
