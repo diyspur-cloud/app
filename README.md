@@ -9,6 +9,10 @@ Frontend web do DIYSPUR, um clube de leitura em português do Brasil para descob
 
 > O frontend não contém a chave `service_role`, não executa DDL e não substitui as policies/RPCs do repositório backend. Toda identidade, score, XP, papel administrativo e acesso a conteúdo protegido precisa ser confirmado no servidor/Supabase.
 
+## Manual do usuário
+
+[Manual completo com guias por página, capturas, referência técnica e cobertura QA](docs/manual/00-overview.md). A rodada documentada distingue navegação executada de mutações e validações pendentes.
+
 ## Índice
 
 - [Estado atual](#estado-atual)
