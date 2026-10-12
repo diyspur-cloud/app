@@ -1,0 +1,43 @@
+import { expect, test } from '@playwright/test';
+
+test.describe('Catálogo e Ficha de Livros', () => {
+  test('catálogo carrega sem termo e exibe cabeçalho e formulário', async ({ page }) => {
+    const response = await page.goto('/livros');
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Uma boa história');
+    await expect(page.getByRole('searchbox', { name: 'Buscar livros por título' })).toBeVisible();
+  });
+
+  test('busca por termo inexistente exibe estado vazio apropriado', async ({ page }) => {
+    await page.goto('/livros?q=termoinexistente999xyz');
+    await expect(page.getByText('Nenhum título por aqui ainda')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Limpar busca' })).toBeVisible();
+  });
+
+  test('ficha do livro renderiza detalhes, Book JSON-LD e canonical correto', async ({ page }) => {
+    await page.goto('/livros');
+    const firstBook = page.locator('.book-card a').first();
+    if (await firstBook.count()) {
+      const bookHref = await firstBook.getAttribute('href');
+      if (bookHref) {
+        await page.goto(bookHref);
+        await expect(page.locator('.book-detail')).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+        // Verifica canonical da ficha
+        const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+        expect(canonical).toContain(bookHref);
+
+        // Verifica Schema.org Book JSON-LD
+        const jsonLdScripts = await page.locator('script[type="application/ld+json"]').allTextContents();
+        const hasBookSchema = jsonLdScripts.some((text) => text.includes('"@type":"Book"'));
+        expect(hasBookSchema).toBe(true);
+      }
+    }
+  });
+
+  test('rota de livro inexistente retorna status 404', async ({ page }) => {
+    const response = await page.goto('/livros/slug-totalmente-inexistente-404');
+    expect(response?.status()).toBe(404);
+  });
+});

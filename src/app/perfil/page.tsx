@@ -192,7 +192,29 @@ function OverviewContent({ data }: { data: ProfileOverviewData }) {
       {recentHistory.length > 0 && <RecentReading items={recentHistory} />}
       {achievements.length > 0 && <AchievementList achievements={achievements} />}
 
-      <div className="notice">Seus dados pessoais e seu progresso são protegidos pelas políticas de acesso do clube.</div>
+      <section className="section" aria-labelledby="privacy-data-heading">
+        <div className="section-head">
+          <div>
+            <span className="eyebrow">Transparência e LGPD</span>
+            <h2 id="privacy-data-heading">Seus dados e privacidade</h2>
+          </div>
+        </div>
+        <p className="field-hint" style={{ marginBottom: '12px' }}>
+          Em conformidade com a Lei Geral de Proteção de Dados (Art. 18), você pode baixar a qualquer momento uma cópia integral das suas anotações, histórico e listas em formato estruturado.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <a className="button button-small" href="/api/account/export" download>
+            Exportar meus dados (JSON) ↓
+          </a>
+          <Link className="text-link" href="/privacidade">
+            Política de privacidade →
+          </Link>
+        </div>
+      </section>
+
+      <div className="notice" style={{ marginTop: '20px' }}>
+        Seus dados pessoais e seu progresso são protegidos pelas políticas de acesso do clube.
+      </div>
       <div className="hero-actions">
         <Link className="button button-small" href="/livros">Escolher uma leitura</Link>
       </div>
@@ -214,7 +236,10 @@ export default async function ProfilePage() {
       <div className="member-grid">
         <nav className="member-nav" aria-label="Área pessoal">
           <Link href="/perfil" aria-current="page">Visão geral</Link>
-          <Link href="/historico">Minha leitura</Link>
+          <Link href="/diario">Diário de leitura</Link>
+          <Link href="/metas">Metas do ano</Link>
+          <Link href="/minha-fila">Minha fila (Up Next)</Link>
+          <Link href="/historico">Histórico de leitura</Link>
           <Link href="/listas">Minhas listas</Link>
           <Link href="/leituras-compartilhadas">Leituras compartilhadas</Link>
           <Link href="/desafios">Desafios</Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -43,6 +43,9 @@ interface MobileNavProps {
 export function MobileNav({ signedIn = false }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setOpen(false);
@@ -50,23 +53,60 @@ export function MobileNav({ signedIn = false }: MobileNavProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        toggleButtonRef.current?.focus();
+        return;
+      }
+
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
+
     if (open) {
+      previousActiveElementRef.current = document.activeElement as HTMLElement | null;
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
+
+      // Move focus to first interactive link inside panel
+      const timer = window.setTimeout(() => {
+        const firstFocusable = panelRef.current?.querySelector<HTMLElement>('a[href], button');
+        firstFocusable?.focus();
+      }, 50);
+
+      return () => {
+        window.clearTimeout(timer);
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = '';
+      };
     } else {
       document.body.style.overflow = '';
+      if (previousActiveElementRef.current) {
+        previousActiveElementRef.current.focus();
+        previousActiveElementRef.current = null;
+      }
     }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
-    };
   }, [open]);
 
   return (
     <>
       <button
+        ref={toggleButtonRef}
         type="button"
         className="mobile-nav-toggle"
         onClick={() => setOpen((prev) => !prev)}
@@ -90,11 +130,15 @@ export function MobileNav({ signedIn = false }: MobileNavProps) {
 
       <div
         className={`nav-mobile-backdrop ${open ? 'open' : ''}`}
-        onClick={() => setOpen(false)}
+        onClick={() => {
+          setOpen(false);
+          toggleButtonRef.current?.focus();
+        }}
         aria-hidden="true"
       />
 
       <div
+        ref={panelRef}
         id="mobile-nav-panel"
         hidden={!open}
         className={`nav-mobile-panel ${open ? 'open' : ''}`}

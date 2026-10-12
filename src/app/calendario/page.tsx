@@ -12,18 +12,23 @@ import { getGoogleCalendarUrl, getMeetingEventSchema } from '@/lib/calendar-link
 export const metadata: Metadata = {
   title: 'Encontros — Calendário do Clube | DIYSPUR',
   description: 'Acompanhe a agenda dos debates ao vivo do DIYSPUR com horários de Brasília, confirmação de presença (RSVP) e exportação para Google Agenda e .ics.',
+  alternates: { canonical: '/calendario' },
 };
 
 export default async function CalendarPage() {
-  const meetings = await getMeetings();
-  let signedIn = false;
-  try {
-    const supabase = await createServerSupabase();
-    const { data } = await supabase.auth.getClaims();
-    signedIn = typeof data?.claims?.sub === 'string';
-  } catch {
-    signedIn = false;
-  }
+  const [meetings, claimsResult] = await Promise.all([
+    getMeetings(),
+    (async () => {
+      try {
+        const supabase = await createServerSupabase();
+        return await supabase.auth.getClaims();
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+
+  const signedIn = typeof claimsResult?.data?.claims?.sub === 'string';
   const rsvps = signedIn ? await getMeetingRsvpMap(meetings.map((meeting) => meeting.id)) : {};
   const now = Date.now();
   const getState = (meeting: typeof meetings[number]): MeetingState => getMeetingState(meeting, now);
@@ -66,14 +71,17 @@ export default async function CalendarPage() {
             {meeting.duration_min ? ` · ${meeting.duration_min} min` : ''} · horário de Brasília
           </p>
           {meeting.agenda && <p>{meeting.agenda}</p>}
-          {meeting.location && <p>{meeting.location}</p>}
-          {meeting.meeting_url && /^https:\/\//i.test(meeting.meeting_url) && !['finished', 'cancelled'].includes(state) && (
+          {meeting.meeting_url && /^https:\/\//i.test(meeting.meeting_url) && !['finished', 'cancelled'].includes(state) ? (
             <p>
               <a className="text-link" href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
                 Abrir transmissão do debate ↗
               </a>
             </p>
-          )}
+          ) : meeting.location?.toLowerCase().includes('online') && !['finished', 'cancelled'].includes(state) ? (
+            <p className="field-hint">A plataforma e as instruções de acesso serão publicadas pela equipe.</p>
+          ) : meeting.location ? (
+            <p>{meeting.location}</p>
+          ) : null}
           {state !== 'cancelled' && (
             <MeetingRsvp
               meetingId={meeting.id}

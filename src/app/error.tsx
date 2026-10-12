@@ -1,17 +1,22 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
 export default function ErrorPage({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('App route error', { digest: undefined });
-  }, []);
+    Sentry.captureException(error, {
+      tags: { boundary: 'app-route' },
+      extra: { nextDigest: error.digest },
+    });
+  }, [error]);
 
   return (
     <section className="container section">

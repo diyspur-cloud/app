@@ -7,6 +7,7 @@ import { CommentSpoilerCard } from '@/components/comments/comment-spoiler-card';
 export const metadata: Metadata = {
   title: 'Comunidade',
   description: 'Ideias, perguntas e conversas entre leitores DIYSPUR.',
+  alternates: { canonical: '/comunidade' },
 };
 
 type CommunityPost = {

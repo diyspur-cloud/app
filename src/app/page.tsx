@@ -1,8 +1,15 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getBooks, getMeetings, getActiveSeason } from '@/features/catalog/queries';
 import { getPublicPolls } from '@/features/polls/queries';
 import { BookCard } from '@/components/book-card';
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default async function HomePage() {
   const [books, meetings, activeSeason, polls] = await Promise.all([
@@ -35,10 +42,7 @@ export default async function HomePage() {
               Começar a ler junto <span aria-hidden="true">↗</span>
             </Link>
             <Link className="btn btn-secondary btn-lg" href="/livros">
-              Descobrir leituras <span aria-hidden="true">↗</span>
-            </Link>
-            <Link className="btn btn-ghost btn-sm" href="#como-funciona" style={{ marginTop: '4px' }}>
-              Ver como funciona ↓
+              Explorar acervo de livros <span aria-hidden="true">↗</span>
             </Link>
           </div>
           <p className="hero-micro">
@@ -182,38 +186,33 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 4. Reader Demo Mockup — Demonstração Interativa */}
+      {/* 4. Segunda Tela do Leitor — Demonstração */}
       <section className="section container">
         <div className="section-head" style={{ textAlign: 'center', alignItems: 'center' }}>
           <div>
-            <span className="eyebrow">A Experiência no Navegador</span>
+            <span className="eyebrow">A Experiência DiySpur</span>
             <h2>Segunda tela para quem ama ler</h2>
-            <p>Seja com livro físico, Kindle ou Kobo: o DIYSPUR é seu espaço de debate e acompanhamento.</p>
+            <p>Seja com livro físico, Kindle ou Kobo: o DiySpur é seu espaço de debate e acompanhamento seguro.</p>
           </div>
         </div>
 
-        <div className="hero-mockup" aria-label="Demonstração interativa do leitor DIYSPUR">
-          <div className="mac-window-frame">
-            <div className="mac-window-toolbar">
-              <div className="mac-lights" aria-hidden="true">
-                <span className="light red" />
-                <span className="light amber" />
-                <span className="light green" />
+        <div className="hero-mockup" aria-label="Demonstração da experiência de segunda tela">
+          <div className="reader-second-screen">
+            <div className="reader-screen-toolbar">
+              <div className="reader-screen-identity">
+                <span aria-hidden="true">📖</span>
+                <span>DiySpur Reader · Segunda Tela de Leitura</span>
               </div>
-              <div className="mac-window-title">
-                <span>📖</span>
-                <span>Exemplo demonstrativo · DIYSPUR Reader</span>
-              </div>
-              <div className="mac-live-pill">
-                <span className="mac-live-dot" />
-                Leitura coletiva
+              <div className="reader-screen-badge">
+                <span className="reader-screen-dot" aria-hidden="true" />
+                Ciclo ativo · Capítulo 1
               </div>
             </div>
 
-            <div className="mac-window-body">
-              <div className="mockup-pane-left">
+            <div className="reader-screen-body">
+              <div className="reader-screen-sidebar">
                 <div className="mockup-book-badge">Temporada Atual</div>
-                <div className="mockup-book-title">
+                <div className="mockup-book-title" style={{ fontFamily: 'var(--font-serif)' }}>
                   {featuredBook?.title ?? 'Verity'}
                 </div>
                 <div className="mockup-chapter-row active">
@@ -224,26 +223,38 @@ export default async function HomePage() {
                   <span>Capítulo 2 · Aprofundamento</span>
                   <span className="mockup-status-muted">Próx. semana</span>
                 </div>
+                <div className="mockup-chapter-row">
+                  <span>Capítulo 3 · Clímax & Teorias</span>
+                  <span className="mockup-status-muted">Em breve</span>
+                </div>
               </div>
 
-              <div className="mockup-pane-right">
-                <div className="mockup-quote-box">
-                  <p className="mockup-quote-text">
-                    “A verdadeira viagem de descobrimento não consiste em procurar novas paisagens, mas em ter novos olhos.”
-                  </p>
-                  <span className="mockup-quote-author">
-                    — Reflexão compartilhada na conversa do capítulo
-                  </span>
+              <div className="reader-screen-main">
+                <div>
+                  <div className="spoiler-protection-banner" style={{ marginBottom: '16px' }}>
+                    <span aria-hidden="true">🛡️</span>
+                    <span><strong>Proteção ativa contra spoilers:</strong> Discussões de capítulos futuros ficam ocultas até a data combinada.</span>
+                  </div>
+
+                  <div className="mockup-quote-box">
+                    <p className="mockup-quote-text">
+                      “A verdadeira viagem de descobrimento não consiste em procurar novas paisagens, mas em ter novos olhos.”
+                    </p>
+                    <span className="mockup-quote-author">
+                      — Destaque compartilhado no debate do capítulo 1
+                    </span>
+                  </div>
                 </div>
+
                 <div className="detail-pills">
                   <span className="status-pill">Discussão aberta</span>
-                  <span className="status-pill neutral">Encontro com o clube</span>
+                  <span className="status-pill neutral">🎙️ Debate ao vivo agendado</span>
                 </div>
               </div>
             </div>
           </div>
-          <p className="field-hint" style={{ textAlign: 'center', marginTop: '12px' }}>
-            Exemplo demonstrativo da experiência de leitura capítulo a capítulo.
+          <p className="field-hint" style={{ textAlign: 'center', marginTop: '14px' }}>
+            Acompanhe o ritmo semana a semana, comente sem medo de spoilers e participe dos debates ao vivo.
           </p>
         </div>
       </section>
@@ -418,26 +429,33 @@ export default async function HomePage() {
 
       {/* 8. Membership & CTA Final de Adesão */}
       <section className="section container">
-        <div className="price-card">
-          <div className="price-head">
-            <span className="price-amount">100% Livre</span>
-            <span className="price-term">· gratuito</span>
-          </div>
-          <p className="price-note">
-            Sem mensalidades, sem paywalls. Um espaço aberto e acolhedor feito por leitores para leitores.
+        <div className="community-invite-card">
+          <span className="eyebrow" style={{ marginBottom: '8px' }}>Comunidade Aberta</span>
+          <h2 style={{ fontSize: 'var(--text-display)', fontWeight: 'var(--weight-display)', margin: '8px 0 12px' }}>
+            Seu próximo capítulo começa aqui.
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-body)', maxWidth: '540px', margin: '0 auto 24px' }}>
+            Junte-se a leitores que desvendam cada obra em comunidade. Cronogramas sem pressa, debates protegidos contra spoilers e encontros ao vivo gratuitos.
           </p>
-          <div className="price-actions">
+
+          <div className="community-invite-features">
+            <span className="community-feature-tag">✦ Cronogramas semanais sugeridos</span>
+            <span className="community-feature-tag">✦ Proteção contra spoilers</span>
+            <span className="community-feature-tag">✦ Encontros virtuais periódicos</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '24px' }}>
             <Link className="btn btn-primary btn-lg" href="/cadastro">
-              Criar minha conta gratuita <span aria-hidden="true">↗</span>
+              Entrar no clube gratuitamente <span aria-hidden="true">↗</span>
             </Link>
-            <Link className="btn btn-secondary btn-sm" href="/livros">
-              Explorar acervo de livros primeiro
+            <Link className="btn btn-secondary btn-lg" href="/livros">
+              Explorar acervo de livros
             </Link>
           </div>
-          <div className="price-guarantee">
-            <span aria-hidden="true">✓</span>
-            Participe no seu ritmo, quando e onde quiser.
-          </div>
+
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', marginTop: '20px' }}>
+            ✓ Gratuito para todos os leitores · Sem mensalidade obrigatória · Participe no seu ritmo
+          </p>
         </div>
       </section>
     </>

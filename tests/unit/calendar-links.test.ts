@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { getGoogleCalendarUrl, getMeetingEventSchema } from '../../src/lib/calendar-links';
+import { escapeIcs, getGoogleCalendarUrl, getMeetingEventSchema } from '../../src/lib/calendar-links';
+
+describe('escapeIcs', () => {
+  it('escapa barras invertidas, quebras de linha, vírgulas e pontos-e-vírgula', () => {
+    const input = 'Texto com \\ barra, vírgula, e ponto; e vírgula.\nNova linha\r\nSegunda linha';
+    const result = escapeIcs(input);
+
+    expect(result).toBe('Texto com \\\\ barra\\, vírgula\\, e ponto\\; e vírgula.\\nNova linha\\nSegunda linha');
+  });
+
+  it('remove caracteres de controle ASCII perigosos sem alterar texto normal', () => {
+    const input = 'Título\u0000com\u0007caracteres\u001Finvisíveis';
+    const result = escapeIcs(input);
+
+    expect(result).toBe('Títulocomcaracteresinvisíveis');
+  });
+});
 
 describe('getGoogleCalendarUrl', () => {
   it('gera URL correta do Google Calendar com parâmetros formatados', () => {

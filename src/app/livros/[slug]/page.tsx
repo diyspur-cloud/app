@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? {
         title,
         description,
+        alternates: { canonical: `/livros/${encodeURIComponent(book.slug)}` },
         openGraph: {
           title,
           description,
@@ -55,18 +56,21 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
     { label: 'ISBN-13', value: book.isbn13 },
   ].filter((detail) => detail.value !== null);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://diyspur.vercel.app';
+  const bookUrl = `${siteUrl}/livros/${encodeURIComponent(book.slug)}`;
   const bookSchema = {
     '@context': 'https://schema.org',
     '@type': 'Book',
+    '@id': `${bookUrl}#book`,
     name: book.title,
-    author: book.authors?.name ? { '@type': 'Person', name: book.authors.name } : undefined,
-    isbn: book.isbn13 ?? undefined,
-    numberOfPages: book.total_pages ?? undefined,
-    publisher: book.publisher ? { '@type': 'Organization', name: book.publisher } : undefined,
+    url: bookUrl,
+    ...(book.synopsis ? { description: book.synopsis } : {}),
+    ...(book.authors?.name ? { author: { '@type': 'Person', name: book.authors.name } } : {}),
+    ...(book.cover_url ? { image: book.cover_url } : {}),
+    ...(book.isbn13 ? { isbn: book.isbn13 } : {}),
+    ...(book.total_pages ? { numberOfPages: book.total_pages } : {}),
+    ...(book.publisher ? { publisher: { '@type': 'Organization', name: book.publisher } } : {}),
     inLanguage: book.language ?? 'pt-BR',
-    image: book.cover_url ?? undefined,
-    description: book.synopsis ?? undefined,
-    url: `https://diyspur.vercel.app/livros/${book.slug}`,
   };
 
   return (
@@ -82,7 +86,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
         <div className="book-detail">
           <div className="book-detail-cover">
             {book.cover_url
-              ? <Image src={book.cover_url} alt={`Capa de ${book.title}`} width={480} height={696} unoptimized priority />
+              ? <Image src={book.cover_url} alt={`Capa de ${book.title}`} width={480} height={696} priority />
               : <span className="cover-placeholder">{book.title}</span>}
           </div>
           <div>
@@ -153,6 +157,11 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
                   </a>
                 ) : null}
                 <ShareBookButton bookTitle={book.title} bookSlug={book.slug} />
+                {safeExternal ? (
+                  <p className="field-hint" style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', margin: '8px 0 0', width: '100%' }}>
+                    * Como participante do Programa de Associados da Amazon, o DIYSPUR pode receber uma comissão por compras qualificadas, sem nenhum custo extra para você.
+                  </p>
+                ) : null}
               </div>
             </div>
 

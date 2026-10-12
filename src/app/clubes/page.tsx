@@ -13,7 +13,7 @@ type ClubCard = {
 export const metadata: Metadata = {
   title: 'Clubes de leitura',
   description: 'Encontre ou crie um clube para ler acompanhado.',
-  robots: { index: false, follow: false },
+  alternates: { canonical: '/clubes' },
 };
 
 export default async function ClubsPage() {

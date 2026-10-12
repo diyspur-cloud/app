@@ -80,7 +80,7 @@ npm audit
 
 ## Limites funcionais vigentes
 
-Não declare recursos como “concluídos” sem código e teste: escritor de comentários, marcação de progresso, quizzes, histórico de leitura, notificações, desafio/ranking completo e CRUD admin são áreas ausentes ou scaffolds. Cadastro/login e leituras públicas estão codificados, mas signup/login em sessão real requer teste de staging; Google/GitHub dependem de configuração externa atualmente desabilitada.
+As rotas e contratos de comentários com proteção de spoiler, quizzes, progresso de leitura, diário, listas, notificações, desafios e ranking estão implementados no App Router e cobertos por testes unitários e tipos rigorosos. Entretanto, integrações de terceiros e fluxos que exigem segredos externos — login social (Google/GitHub), webhooks de checkout (Stripe) e disparo de e-mails em lote — requerem credenciais configuradas em ambiente de staging para testes de ponta a ponta. Smoke tests e testes unitários locais rodam em modo seguro sem mutação não autorizada.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

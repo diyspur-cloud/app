@@ -1,15 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
 import '@/styles/global.css';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import { JsonLd } from '@/components/json-ld';
-
-const jetbrains = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['400', '500'],
-});
+import { PostHogProvider } from '@/components/analytics/posthog-provider';
+import { AnalyticsConsentBanner } from '@/components/analytics/analytics-consent-banner';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://diyspur.vercel.app';
 
@@ -21,9 +15,6 @@ export const metadata: Metadata = {
   },
   description: 'Leia junto. Descubra novas histórias. Converse com quem sente os livros como você.',
   applicationName: 'DIYSPUR',
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     type: 'website',
     siteName: 'DIYSPUR',
@@ -104,7 +95,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={jetbrains.variable}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
@@ -113,9 +103,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-        <SiteHeader />
-        <main id="conteudo" tabIndex={-1}>{children}</main>
-        <SiteFooter />
+        <PostHogProvider>
+          <SiteHeader />
+          <main id="conteudo" tabIndex={-1}>{children}</main>
+          <SiteFooter />
+          <AnalyticsConsentBanner />
+        </PostHogProvider>
       </body>
     </html>
   );

@@ -24,25 +24,26 @@ export type ChallengesPageData = {
 export async function getChallengesPageData(): Promise<ChallengesPageData> {
   try {
     const client = await createServerSupabase();
-    const { data: claimsData } = await client.auth.getClaims();
-    const userId = claimsData?.claims?.sub ?? null;
 
-    const challengesQuery = client
+    const challengesPromise = client
       .from('challenges')
       .select('id,title,description,year,created_at')
       .order('created_at', { ascending: false })
       .limit(36);
 
-    const [challengesResult, progressResult] = await Promise.all([
-      challengesQuery,
-      userId
-        ? client
-            .from('user_challenges')
-            .select('challenge_id,progress,completed_at')
-            .eq('user_id', userId)
-            .limit(100)
-        : Promise.resolve({ data: [], error: null }),
+    const [claimsResult, challengesResult] = await Promise.all([
+      client.auth.getClaims(),
+      challengesPromise,
     ]);
+
+    const userId = claimsResult.data?.claims?.sub ?? null;
+    const progressResult = userId
+      ? await client
+          .from('user_challenges')
+          .select('challenge_id,progress,completed_at')
+          .eq('user_id', userId)
+          .limit(100)
+      : { data: [], error: null };
 
     return {
       userId,

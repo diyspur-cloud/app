@@ -26,7 +26,7 @@ export async function getClubPage(slug: string) {
     .eq('slug', slug)
     .maybeSingle();
 
-  if (error || !club) return { userId, club: null, members: [] as Member[], isMember: false };
+  if (error || !club || (club.archived_at && club.owner_id !== userId)) return { userId, club: null, members: [] as Member[], isMember: false };
   const [{ data: members }, ownMembership, memberCount] = await Promise.all([
     client.from('user_club_members').select('user_id,role,joined_at').eq('club_id', club.id).order('joined_at', { ascending: true }).limit(100),
     userId ? client.from('user_club_members').select('user_id,role').eq('club_id', club.id).eq('user_id', userId).maybeSingle() : Promise.resolve({ data: null }),
@@ -43,6 +43,7 @@ export async function getVisibleClubs() {
   const { data, error } = await client
     .from('user_clubs')
     .select('id,owner_id,name,slug,description,is_private,version,archived_at,created_at')
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(24);
 

@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export function DesktopNav() {
-  const [openDropdown, setOpenDropdown] = useState<'explore' | 'community' | null>(null);
+export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
+  const [openDropdown, setOpenDropdown] = useState<'explore' | 'community' | 'personal' | null>(null);
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +39,12 @@ export function DesktopNav() {
     pathname.startsWith('/comunidade') ||
     pathname.startsWith('/calendario') ||
     pathname.startsWith('/votacao');
+  const isPersonalActive =
+    pathname.startsWith('/diario') ||
+    pathname.startsWith('/metas') ||
+    pathname.startsWith('/minha-fila') ||
+    pathname.startsWith('/listas') ||
+    pathname.startsWith('/ranking');
   const isJournalActive = pathname.startsWith('/diario');
 
   return (
@@ -120,10 +126,72 @@ export function DesktopNav() {
         </div>
       </div>
 
-      {/* Link Direto: Diário */}
-      <Link className={isJournalActive ? 'active' : ''} href="/diario">
-        Diário
-      </Link>
+      {/* Menu Pessoal quando autenticado ou Link Direto quando visitante */}
+      {signedIn ? (
+        <div className="nav-dropdown">
+          <button
+            type="button"
+            className={`nav-dropdown-trigger ${isPersonalActive ? 'active' : ''}`}
+            onClick={() => setOpenDropdown((prev) => (prev === 'personal' ? null : 'personal'))}
+            aria-expanded={openDropdown === 'personal'}
+            aria-haspopup="true"
+          >
+            <span>Meu ritmo</span>
+            <span className="nav-dropdown-chevron" aria-hidden="true">▼</span>
+          </button>
+          <div className={`nav-dropdown-menu ${openDropdown === 'personal' ? 'open' : ''}`} role="menu">
+            <Link
+              className="nav-dropdown-item"
+              href="/diario"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Diário</span>
+              <span className="nav-dropdown-item-desc">Suas anotações privadas</span>
+            </Link>
+            <Link
+              className="nav-dropdown-item"
+              href="/metas"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Metas anuais</span>
+              <span className="nav-dropdown-item-desc">Acompanhe seus objetivos</span>
+            </Link>
+            <Link
+              className="nav-dropdown-item"
+              href="/minha-fila"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Minha fila</span>
+              <span className="nav-dropdown-item-desc">Livros priorizados (Up Next)</span>
+            </Link>
+            <Link
+              className="nav-dropdown-item"
+              href="/listas"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Minhas listas</span>
+              <span className="nav-dropdown-item-desc">Coleções e organização</span>
+            </Link>
+            <Link
+              className="nav-dropdown-item"
+              href="/ranking"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Ranking</span>
+              <span className="nav-dropdown-item-desc">Posição na temporada por XP</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <Link className={isJournalActive ? 'active' : ''} href="/diario">
+          Diário
+        </Link>
+      )}
     </nav>
   );
 }

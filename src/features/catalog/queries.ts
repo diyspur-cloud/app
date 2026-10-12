@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
 export type Book = {
@@ -19,7 +20,7 @@ type ChapterNavigation = { id: string; number: number; title: string; published_
 export type SeasonMilestone = { id: string; title: string; description: string | null; chapter_from: number | null; chapter_to: number | null; target_date: string | null; completed: boolean };
 export type Meeting = { id: string; chapter_id: string; title: string; status: string; kind: string; scheduled_at: string; duration_min: number | null; meeting_url: string | null; location: string | null; agenda: string | null };
 
-export async function getBooks(search?: string): Promise<Book[]> {
+export const getBooks = cache(async (search?: string): Promise<Book[]> => {
   const client = await createServerSupabase();
   let query = client.from('books').select('id,title,slug,author_id,cover_url,isbn13,language,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url,publisher,translator,publication_date,content_rating,edition_number,format,width_mm,height_mm,depth_mm').order('created_at', { ascending: false }).limit(36);
   const term = search?.trim().replace(/[%,()]/g, '');
@@ -31,9 +32,9 @@ export async function getBooks(search?: string): Promise<Book[]> {
   const authors = await client.from('authors').select('id,name').in('id', books.map((book) => book.author_id));
   const byId = new Map((authors.data ?? []).map((author) => [author.id, author.name]));
   return books.map((book) => ({ ...book, authors: { name: byId.get(book.author_id) ?? 'Autor(a)' } }));
-}
+});
 
-export async function getBook(slug: string) {
+export const getBook = cache(async (slug: string) => {
   const client = await createServerSupabase();
   const { data, error } = await client.from('books').select('id,title,slug,author_id,cover_url,isbn13,language,synopsis,total_chapters,total_pages,publication_year,tags,amazon_url,publisher,translator,publication_date,content_rating,edition_number,format,width_mm,height_mm,depth_mm').eq('slug', slug).maybeSingle();
   if (error || !data) return null;
@@ -48,9 +49,9 @@ export async function getBook(slug: string) {
   ]);
   const warningRows = (warnings.data ?? []) as unknown as { severity: string; is_community: boolean; warning: { label: string; description: string | null } | null }[];
   return { ...book, authors: author.data, seasons: (seasons.data ?? []) as Season[], warnings: warningRows.flatMap((row) => row.warning ? [{ label: row.warning.label, description: row.warning.description, severity: row.severity, is_community: row.is_community }] : []), readerLists: (readerLists.data ?? []) as { id: string; title: string }[] };
-}
+});
 
-export async function getSeason(slug: string) {
+export const getSeason = cache(async (slug: string) => {
   const client = await createServerSupabase();
   const { data: season, error } = await client.from('seasons').select('id,number,title,slug,book_id,status,description,starts_at,ends_at,cover_url').eq('slug', slug).maybeSingle();
   if (error || !season || !['active', 'finished'].includes(season.status)) return null;
@@ -66,7 +67,7 @@ export async function getSeason(slug: string) {
   const completed = new Map((progressResult.data ?? []).map((row: { milestone_id: string; completed: boolean }) => [row.milestone_id, row.completed]));
   const milestones = ((milestoneResult.data ?? []) as Omit<SeasonMilestone, 'completed'>[]).map((milestone) => ({ ...milestone, completed: completed.get(milestone.id) === true }));
   return { season: season as Season, book: book.data, chapters: (chapterResult.data ?? []) as Chapter[], chapterAccess: (accessResult.data ?? []) as ChapterAccess[], milestones };
-}
+});
 
 export type ActiveSeasonInfo = {
   season: Season;
@@ -76,7 +77,7 @@ export type ActiveSeasonInfo = {
   nextMeeting?: Meeting | null;
 };
 
-export async function getActiveSeason(): Promise<ActiveSeasonInfo | null> {
+export const getActiveSeason = cache(async (): Promise<ActiveSeasonInfo | null> => {
   const client = await createServerSupabase();
   const { data: season, error } = await client
     .from('seasons')
@@ -105,16 +106,16 @@ export async function getActiveSeason(): Promise<ActiveSeasonInfo | null> {
     publishedChapters: published,
     nextMeeting: (meetingsResult.data as Meeting | null) ?? null,
   };
-}
+});
 
-export async function getMeetings(): Promise<Meeting[]> {
+export const getMeetings = cache(async (): Promise<Meeting[]> => {
   const client = await createServerSupabase();
   const { data, error } = await client.from('meetings').select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda').order('scheduled_at').limit(36);
   if (error) { console.error('Meetings query failed', error.code); return []; }
   return (data ?? []) as Meeting[];
-}
+});
 
-export async function getChapters(id: string) {
+export const getChapters = cache(async (id: string) => {
   const client = await createServerSupabase();
   const [{ data: chapter, error }, { data: claims }] = await Promise.all([
     client.from('chapters').select('id,season_id,number,title,reading_range,youtube_url,summary,published_at').eq('id', id).maybeSingle(),
@@ -165,4 +166,4 @@ export async function getChapters(id: string) {
     signedIn: typeof claims?.claims?.sub === 'string',
     viewerId: typeof claims?.claims?.sub === 'string' ? claims.claims.sub : null,
   };
-}
+});

@@ -1,15 +1,19 @@
 # DIYSPUR — Clube de leitura
 
-> Frontend web do DIYSPUR, um clube de leitura em português do Brasil para descobrir livros, acompanhar temporadas e capítulos, participar de quizzes, conversar sem spoilers, responder enquetes, acompanhar encontros e organizar o próprio ritmo de leitura.
+> Um clube de leitura comunitário e colaborativo para leitores de língua portuguesa.
 
-## Páginas principais
+## Sobre a plataforma
+O DIYSPUR organiza leituras em temporadas estruturadas por capítulos, permitindo que leitores acompanhem o ritmo juntos, respondam a quizzes de validação de leitura, compartilhem anotações com filtros de spoiler e participem de encontros semanais.
 
-- [Home](https://diyspur.vercel.app/): Home editorial, destaques e próximos encontros.
-- [Livros](https://diyspur.vercel.app/livros): Catálogo e busca por título.
-- [Calendário](https://diyspur.vercel.app/calendario): Encontros e eventos.
-- [Comunidade](https://diyspur.vercel.app/comunidade): Feed público e discussões.
-- [Ranking](https://diyspur.vercel.app/ranking): Classificação por XP.
+## Seções públicas
+- / : Apresentação do clube e proposta editorial
+- /livros : Catálogo de livros e detalhes de edições
+- /calendario : Programação de encontros e metas de leitura
+- /comunidade : Clubes e tópicos públicos
+- /privacidade : Política de privacidade e conformidade com LGPD
+- /termos : Termos de uso da plataforma
 
-## Stack
-
-Next.js 16, React 19, TypeScript, Supabase SSR, CSS próprio.
+## Diretrizes para assistentes de IA
+- O conteúdo de leitura é dividido por temporadas e capítulos.
+- Spoilers de capítulos futuros são sinalizados e protegidos na plataforma.
+- Acesso à área de membros e histórico pessoal é restrito a usuários cadastrados.

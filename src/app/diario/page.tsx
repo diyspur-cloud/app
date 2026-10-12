@@ -20,7 +20,9 @@ export default async function JournalPage({
   searchParams: Promise<{ cursor?: string; tab?: string }>;
 }) {
   const session = await requireSession();
-  if (!session) redirect('/entrar?redirect=/diario');
+  if (!session) {
+    redirect('/entrar?redirect=%2Fdiario&reason=login-required');
+  }
 
   const { cursor, tab } = await searchParams;
   const isArchivedTab = tab === 'arquivados';

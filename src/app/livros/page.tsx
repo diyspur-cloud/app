@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { getBooks } from '@/features/catalog/queries';
 import { BookCard } from '@/components/book-card';
+import { BookSearch } from '@/components/catalog/book-search';
 import { JsonLd } from '@/components/json-ld';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Livros',
   description: 'Explore histórias e leituras compartilhadas pela comunidade DIYSPUR.',
+  alternates: { canonical: '/livros' },
 };
 
 const faqSchema = {
@@ -35,11 +38,17 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <span className="eyebrow">A biblioteca do clube</span>
         <h1>Uma boa história<br/><em>chama outra.</em></h1>
         <p>Descubra a seleção de leituras DIYSPUR e encontre sua próxima conversa favorita.</p>
-        <form className="search-form" action="/livros" method="get">
-          <label className="sr-only" htmlFor="q">Buscar livros por título</label>
-          <input className="field" type="search" name="q" id="q" defaultValue={q} placeholder="Buscar por título…"/>
-          <button className="button button-small" type="submit">Buscar</button>
-        </form>
+        <Suspense
+          fallback={
+            <form className="search-form" action="/livros" method="get">
+              <label className="sr-only" htmlFor="book-query-fallback">Buscar livros por título</label>
+              <input className="field" id="book-query-fallback" type="search" name="q" defaultValue={q} placeholder="Buscar por título…" />
+              <button className="button button-small" type="submit">Buscar</button>
+            </form>
+          }
+        >
+          <BookSearch initialQuery={q} />
+        </Suspense>
         {q && <p className="field-hint">Resultados para “{q}” · <Link className="text-link" href="/livros">Limpar busca</Link></p>}
       </header>
       {books.length ? (

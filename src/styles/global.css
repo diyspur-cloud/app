@@ -682,7 +682,7 @@ img, svg {
 }
 
 /* =====================================================================
-   Native macOS Mockup Window (.mac-window-frame)
+   Reader Second Screen (.reader-second-screen) & Mockup Window
    ===================================================================== */
 .hero-mockup {
   margin-top: 40px;
@@ -692,6 +692,100 @@ img, svg {
   .hero-mockup {
     margin-top: 56px;
   }
+}
+
+.reader-second-screen {
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: var(--radius-large);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.reader-screen-toolbar {
+  padding: 14px 20px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reader-screen-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.reader-screen-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--positive) 14%, transparent);
+  color: var(--positive-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reader-screen-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--positive);
+}
+
+.reader-screen-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--surface-1);
+}
+
+@media (min-width: 768px) {
+  .reader-screen-body {
+    grid-template-columns: 320px 1fr;
+  }
+}
+
+.reader-screen-sidebar {
+  padding: 24px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .reader-screen-sidebar {
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+}
+
+.reader-screen-main {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.spoiler-protection-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
 }
 
 .mac-window-frame {
@@ -1107,6 +1201,46 @@ img, svg {
 .price-guarantee svg {
   color: var(--positive);
   flex-shrink: 0;
+}
+
+/* =====================================================================
+   Community Invite Card (.community-invite-card)
+   ===================================================================== */
+.community-invite-card {
+  background: linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  padding: 36px 20px;
+  box-shadow: var(--shadow-md);
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .community-invite-card {
+    padding: 48px 40px;
+  }
+}
+
+.community-invite-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.community-feature-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  font-size: var(--text-body-sm);
+  color: var(--text-secondary);
 }
 
 /* =====================================================================

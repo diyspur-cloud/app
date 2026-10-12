@@ -1,8 +1,27 @@
+import { withSentryConfig } from '@sentry/nextjs/config';
+
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  {
+    key: 'Content-Security-Policy-Report-Only',
+    value: [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "img-src 'self' data: blob: https://*.supabase.co https://www.record.com.br https://*.record.com.br https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://*.amazon.com.br https://*.amazon.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.posthog.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+      "upgrade-insecure-requests",
+    ].join('; '),
+  },
 ];
 
 /** @type {import('next').NextConfig} */
@@ -20,7 +39,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'm.media-amazon.com' },
       { protocol: 'https', hostname: '**.amazon.com.br' },
       { protocol: 'https', hostname: '**.amazon.com' },
-      { protocol: 'https', hostname: '**' },
     ],
   },
   async headers() {
@@ -28,4 +46,15 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const isSentryConfigured = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_AUTH_TOKEN);
+
+export default isSentryConfigured
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: !process.env.CI,
+      telemetry: false,
+      sourcemaps: { deleteSourcemapsAfterUpload: true },
+    })
+  : nextConfig;

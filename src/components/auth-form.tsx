@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getSafeRedirectUrl } from '@/lib/safe-redirect';
 import { createBrowserSupabase } from '@/lib/supabase/browser';
 import { trackEvent } from '@/lib/analytics';
+import { captureAnalyticsEvent } from '@/lib/analytics/client';
 
 const emailSchema = z.email('Informe um email válido.');
 const passwordSchema = z.string().min(1, 'Informe sua senha.').max(128, 'A senha deve ter até 128 caracteres.');
@@ -32,6 +33,10 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
   const signup = mode === 'signup';
   const readOnlyPreview = process.env.NEXT_PUBLIC_READ_ONLY_PREVIEW === '1';
   const destination = getSafeRedirectUrl(params.get('redirect'), '/perfil');
+  const reason = params.get('reason');
+  const contextualMessage = reason === 'login-required'
+    ? 'Entre na sua conta para acessar este espaço. Depois do login, você voltará para a página solicitada.'
+    : '';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,6 +65,10 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
       return;
     }
 
+    if (signup) {
+      captureAnalyticsEvent('sign_up_started', { auth_method: 'password' });
+    }
+
     setBusy(true);
     try {
       const supabase = createBrowserSupabase();
@@ -78,6 +87,9 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
           method: 'email',
           source_path: destination,
         });
+        captureAnalyticsEvent('sign_up_completed', {
+          auth_method: 'password',
+        });
 
         if (!data.session) {
           setMessage('Quase lá: confira seu email para confirmar o cadastro e continuar.');
@@ -89,6 +101,9 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
           password: passwordResult.data,
         });
         if (authError) throw authError;
+        captureAnalyticsEvent('login_completed', {
+          auth_method: 'password',
+        });
       }
       router.replace(destination);
       router.refresh();
@@ -143,6 +158,12 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
             ? 'Crie seu espaço de leitura e acompanhe histórias com outras pessoas.'
             : 'Entre para continuar suas leituras e conversas.'}
         </p>
+
+        {contextualMessage && (
+          <p className="notice" role="status" aria-live="polite">
+            {contextualMessage}
+          </p>
+        )}
 
         {error && (
           <p id="auth-error-message" className="auth-alert" role="alert">

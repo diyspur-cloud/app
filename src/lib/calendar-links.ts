@@ -71,3 +71,16 @@ export function getMeetingEventSchema(meeting: CalendarMeeting) {
     },
   };
 }
+
+/**
+ * Escapa texto de acordo com a especificação RFC 5545 para arquivos iCalendar (.ics).
+ */
+export function escapeIcs(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+}
+
