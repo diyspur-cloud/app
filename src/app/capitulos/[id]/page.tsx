@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChapterInteractions } from '@/components/chapters/chapter-interactions';
+import { ChapterProgress } from '@/components/chapters/chapter-progress';
 import { QuizPanel } from '@/components/quiz/quiz-panel';
 import { YouTubeFacade } from '@/components/youtube-facade';
-import { TimedCommentList } from '@/components/video/timed-comment-list';
 import { HostPrompt } from '@/components/chapters/host-prompt';
 import { DiscussionEntryButton } from '@/components/discussions/discussion-entry-button';
 import { getChapters } from '@/features/catalog/queries';
-import { getTimedComments } from '@/features/video-comments/queries';
 import type { Metadata } from 'next';
-import { createServerSupabase } from '@/lib/supabase/clients';
 import { chapterLabel, cleanChapterTitle } from '@/lib/chapter-label';
+import { JsonLd } from '@/components/json-ld';
 
 export async function generateMetadata({
   params,
@@ -87,55 +85,30 @@ export default async function ChapterPage({
     chapter,
     season,
     book,
-    comments,
     progress,
     previous,
     next,
-    meeting,
     questions,
     hostPrompt,
     hostPromptResult,
     hostPromptVote,
     signedIn,
-    viewerId,
   } = result;
 
-  const profileClient = await createServerSupabase();
-  const authorIds = [...new Set(comments.map((comment) => comment.user_id))];
-  const { data: authorRows } = authorIds.length
-    ? await profileClient
-        .from('v_profiles_public')
-        .select('id,display_name,username')
-        .in('id', authorIds)
-    : { data: [] };
-  const authors = new Map((authorRows ?? []).map((author) => [author.id, author]));
-  const commentsWithAuthors = comments.map((comment) => ({
-    ...comment,
-    author: authors.get(comment.user_id) ?? null,
-  }));
-  const timedComments = await getTimedComments(chapter.id);
-  const { data: chapterChannel } = await profileClient
-    .from('club_channels')
-    .select('id, slug, club_id, user_clubs!inner(slug)')
-    .eq('chapter_id', chapter.id)
-    .maybeSingle();
-
-  const clubSlug = (chapterChannel?.user_clubs as unknown as { slug: string } | undefined)?.slug ?? null;
-
-  const meetingDate = meeting?.scheduled_at
-    ? `${new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-        timeZone: 'America/Sao_Paulo',
-      }).format(new Date(meeting.scheduled_at))} · horário de Brasília`
-    : null;
-  const safeMeetingUrl =
-    meeting?.meeting_url && /^https:\/\//i.test(meeting.meeting_url)
-      ? meeting.meeting_url
-      : null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://diyspur.vercel.app';
+  const chapterSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'LearningResource',
+    name: `Segunda Tela: Capítulo ${chapter.number} — ${cleanChapterTitle(chapter.title, chapter.number)}`,
+    description: chapter.summary ?? `Acompanhamento de leitura e debate do capítulo ${chapter.number} de ${book?.title ?? 'DIYSpur'}.`,
+    url: `${siteUrl}/capitulos/${chapter.id}`,
+    learningResourceType: 'DiscussionGuide',
+    ...(book ? { isPartOf: { '@type': 'Book', name: book.title, url: `${siteUrl}/livros/${encodeURIComponent(book.slug)}` } } : {}),
+  };
 
   return (
     <div className="container">
+      <JsonLd data={chapterSchema} />
       <header className="page-intro chapter-intro">
         <nav className="breadcrumbs" aria-label="Trilha de navegação">
           <Link href="/livros">Livros</Link>
@@ -162,27 +135,32 @@ export default async function ChapterPage({
       <div className="chapter-layout">
         <section className="chapter-main">
           <YouTubeFacade videoUrl={chapter.youtube_url} title={chapter.title} />
-          <TimedCommentList
-            comments={timedComments}
-            chapterId={chapter.id}
-            signedIn={signedIn}
-            videoUrl={chapter.youtube_url}
-          />
+
           {chapter.summary && (
             <section className="section chapter-summary">
               <h2>Sobre este capítulo</h2>
               <p>{chapter.summary}</p>
             </section>
           )}
-          <ChapterInteractions
+
+          {/* Botão Único de Conversa do Capítulo no Grupo Oficial */}
+          <div style={{ marginBlock: '20px' }}>
+            <DiscussionEntryButton
+              mode="chapter"
+              chapterId={chapter.id}
+              label="Comentar no grupo"
+              className="btn btn-primary"
+            />
+          </div>
+
+          {/* Controle de Progresso do Capítulo */}
+          <ChapterProgress
             chapterId={chapter.id}
             signedIn={signedIn}
-            viewerId={viewerId}
-            progress={
-              progress ? { status: progress.status, percent: progress.percent } : null
-            }
-            comments={commentsWithAuthors}
+            initialPercent={progress?.percent ?? 0}
+            status={progress?.status}
           />
+
           {hostPrompt && hostPrompt.options.length > 0 && (
             <HostPrompt
               prompt={hostPrompt}
@@ -192,7 +170,9 @@ export default async function ChapterPage({
               chapterId={chapter.id}
             />
           )}
+
           <QuizPanel chapterId={chapter.id} questions={questions} signedIn={signedIn} />
+
           <nav className="chapter-navigation" aria-label="Navegação de capítulos">
             {previous ? (
               <Link className="chapter-nav-link" href={`/capitulos/${previous.id}`}>
@@ -232,7 +212,7 @@ export default async function ChapterPage({
         <aside className="chapter-aside">
           <h2>Ao lado da leitura</h2>
           <p>
-            {book ? <>Você está lendo “{book.title}”. </> : null}
+            {book ? <>Você está acompanhando “{book.title}”. </> : null}
             {season ? (
               <>
                 {season.title} · capítulo {chapter.number}.{' '}
@@ -247,61 +227,14 @@ export default async function ChapterPage({
               </Link>
             </p>
           )}
-          {chapterChannel && clubSlug ? (
-            <div className="aside-channel my-3">
-              <span className="eyebrow block mb-1">Debate deste capítulo</span>
-              <DiscussionEntryButton
-                mode="chapter"
-                chapterId={chapter.id}
-                label={`Entrar no debate do Cap. ${chapter.number}`}
-              />
-            </div>
-          ) : (
+          {season && (
             <p className="aside-link">
-              <Link className="text-link" href="/comunidade">
-                Ir para as conversas →
+              <Link className="text-link" href={`/temporadas/${season.slug}`}>
+                Ver todos os capítulos da temporada →
               </Link>
             </p>
           )}
-          {meeting && (
-            <section className="meeting-card">
-              <span className="eyebrow">Encontro associado</span>
-              <h3>
-                <Link href={`/eventos/${meeting.id}`} className="hover:underline">
-                  {meeting.title}
-                </Link>
-              </h3>
-              {meetingDate && <p>{meetingDate}</p>}
-              {meeting.duration_min && <p>{meeting.duration_min} minutos</p>}
-              {meeting.status && (
-                <p className="field-hint">
-                  {meeting.status === 'scheduled'
-                    ? 'Encontro agendado'
-                    : meeting.status === 'live'
-                      ? 'Ao vivo agora'
-                      : meeting.status === 'done'
-                        ? 'Encontro encerrado'
-                        : 'Encontro cancelado'}
-                </p>
-              )}
-              <div className="flex flex-col gap-1 mt-2">
-                <Link href={`/eventos/${meeting.id}`} className="text-link text-sm font-medium">
-                  Ver detalhes e confirmar presença &rarr;
-                </Link>
-                {safeMeetingUrl && (
-                  <a
-                    className="text-link text-sm"
-                    href={safeMeetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Abrir transmissão ↗
-                  </a>
-                )}
-              </div>
-            </section>
-          )}
-          <div className="notice">
+          <div className="notice" style={{ marginTop: '24px' }}>
             Seu progresso e suas respostas ficam privados por padrão, e o resultado é conferido
             antes de ser salvo.
           </div>

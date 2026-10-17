@@ -7,7 +7,7 @@ import { cleanChapterTitle } from '@/lib/chapter-label';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Minha leitura', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Minha leitura | DIYSPUR', robots: { index: false, follow: false } };
 
 function formatDate(value: string): string | null {
   const date = new Date(value);
@@ -15,14 +15,14 @@ function formatDate(value: string): string | null {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date);
 }
 
-function statusLabel(status: ReadingHistoryItem['status']): string {
-  const labels: Record<ReadingHistoryItem['status'], string> = {
+function statusLabel(status: ReadingHistoryItem['status'] | string): string {
+  const labels: Record<string, string> = {
     want_to_read: 'Quero ler',
     reading: 'Em andamento',
     read: 'Concluído',
-    dnf: 'Pausado',
+    dnf: 'Abandono / Pausado',
   };
-  return labels[status];
+  return labels[status] ?? status;
 }
 
 function HistoryRow({ item }: { item: ReadingHistoryItem }) {
@@ -32,12 +32,21 @@ function HistoryRow({ item }: { item: ReadingHistoryItem }) {
   return (
     <article className="timeline-row">
       <div>
-        <h3><Link href={`/capitulos/${item.chapter.id}`}>{cleanChapterTitle(item.chapter.title, item.chapter.number)}</Link></h3>
+        <h3>
+          <Link href={`/capitulos/${item.chapter.id}`}>
+            {cleanChapterTitle(item.chapter.title, item.chapter.number)}
+          </Link>
+        </h3>
         <p>
-          <Link className="text-link" href={`/livros/${item.book.slug}`}>{item.book.title}</Link>
+          <Link className="text-link" href={`/livros/${item.book.slug}`}>
+            {item.book.title}
+          </Link>
           {' · '}
-          <Link className="text-link" href={`/temporadas/${item.season.slug}`}>{item.season.title}</Link>
-          {' · capítulo '}{item.chapter.number}
+          <Link className="text-link" href={`/temporadas/${item.season.slug}`}>
+            {item.season.title}
+          </Link>
+          {' · capítulo '}
+          {item.chapter.number}
         </p>
         <p>
           {hasProgress && `${item.percent}% lido`}
@@ -47,15 +56,27 @@ function HistoryRow({ item }: { item: ReadingHistoryItem }) {
           {updatedDate && <time dateTime={item.updatedAt}>Atualizado em {updatedDate}</time>}
         </p>
       </div>
-      <span className={`status-pill${item.status === 'read' ? '' : ' neutral'}`}>{statusLabel(item.status)}</span>
+      <span className={`status-pill${item.status === 'read' ? '' : ' neutral'}`}>
+        {statusLabel(item.status)}
+      </span>
     </article>
   );
 }
 
-function HistorySection({ id, eyebrow, title, items }: { id: string; eyebrow: string; title: string; items: ReadingHistoryItem[] }) {
+function HistorySection({
+  id,
+  eyebrow,
+  title,
+  items,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  items: ReadingHistoryItem[];
+}) {
   if (!items.length) return null;
   return (
-    <section className="section" style={{ paddingBlock: 28 }} aria-labelledby={id}>
+    <section className="section" style={{ paddingBlock: 24 }} aria-labelledby={id}>
       <div className="section-head" style={{ marginBottom: 16 }}>
         <div>
           <span className="eyebrow">{eyebrow}</span>
@@ -63,7 +84,9 @@ function HistorySection({ id, eyebrow, title, items }: { id: string; eyebrow: st
         </div>
       </div>
       <div className="timeline">
-        {items.map((item) => <HistoryRow item={item} key={item.id} />)}
+        {items.map((item) => (
+          <HistoryRow item={item} key={item.id} />
+        ))}
       </div>
     </section>
   );
@@ -121,7 +144,7 @@ export default async function HistoryPage() {
       <header className="page-intro">
         <span className="eyebrow">Histórico de leitura</span>
         <h1>O que você está lendo.</h1>
-        <p>Seus capítulos e descobertas, organizados no seu ritmo.</p>
+        <p>Seus livros e capítulos acompanhados, organizados no seu ritmo.</p>
       </header>
       <div className="member-grid">
         <nav className="member-nav" aria-label="Área pessoal">
@@ -137,34 +160,49 @@ export default async function HistoryPage() {
         </nav>
         <div className="member-card">
           {bookReadings.length > 0 && (
-            <section className="section" style={{ paddingBlock: '0 24px', borderBottom: '1px solid var(--border)' }} aria-labelledby="books-shelf-title">
-              <div className="section-head" style={{ marginBottom: 12 }}>
+            <section
+              className="section"
+              style={{ paddingBottom: '24px', borderBottom: '1px solid var(--border)' }}
+              aria-labelledby="books-shelf-title"
+            >
+              <div className="section-head" style={{ marginBottom: 16 }}>
                 <div>
-                  <span className="eyebrow">Estante</span>
-                  <h2 id="books-shelf-title">Suas Leituras</h2>
+                  <span className="eyebrow">Estante Pessoal</span>
+                  <h2 id="books-shelf-title">Livros em Andamento & Marcados</h2>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '12px',
+                }}
+              >
                 {bookReadings.map((br) => {
                   if (!br.book) return null;
-                  const statusText =
-                    br.status === 'want_to_read'
-                      ? 'Quero ler'
-                      : br.status === 'reading'
-                        ? 'Lendo'
-                        : br.status === 'read'
-                          ? 'Lido'
-                          : 'Pausado';
                   return (
                     <Link
                       key={br.bookId}
                       href={`/livros/${br.book.slug}`}
-                      className="card p-3 flex items-center gap-3 hover:border-primary transition-colors text-sm"
+                      style={{
+                        padding: '12px',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        display: 'block',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                      }}
                     >
-                      <div>
-                        <strong>{br.book.title}</strong>
-                        <span className="block text-xs text-muted-foreground">{statusText}</span>
-                      </div>
+                      <strong style={{ display: 'block', fontSize: 'var(--text-body-sm)' }}>
+                        {br.book.title}
+                      </strong>
+                      <span
+                        className="field-hint"
+                        style={{ display: 'block', fontSize: 'var(--text-caption)', marginTop: '4px' }}
+                      >
+                        Status: <strong>{statusLabel(br.status)}</strong>
+                      </span>
                     </Link>
                   );
                 })}
@@ -174,18 +212,37 @@ export default async function HistoryPage() {
 
           {history.length === 0 && bookReadings.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-mark" aria-hidden="true">⌁</div>
+              <div className="empty-state-mark" aria-hidden="true">
+                ⌁
+              </div>
               <h2>Nenhuma leitura registrada ainda</h2>
               <p>Quando você começar um capítulo ou marcar um livro, seu andamento aparecerá aqui.</p>
               <div className="empty-actions">
-                <Link className="button button-dark button-small" href="/livros">Explorar livros</Link>
+                <Link className="button button-dark button-small" href="/livros">
+                  Explorar livros
+                </Link>
               </div>
             </div>
           ) : (
             <>
-              <HistorySection id="in-progress-title" eyebrow="Agora" title="Em andamento" items={inProgress} />
-              <HistorySection id="completed-title" eyebrow="Concluídos" title="Leituras concluídas" items={completed} />
-              <HistorySection id="other-reading-title" eyebrow="Outros registros" title="Outras marcações" items={other} />
+              <HistorySection
+                id="in-progress-title"
+                eyebrow="Agora"
+                title="Em andamento por capítulo"
+                items={inProgress}
+              />
+              <HistorySection
+                id="completed-title"
+                eyebrow="Concluídos"
+                title="Capítulos concluídos"
+                items={completed}
+              />
+              <HistorySection
+                id="other-reading-title"
+                eyebrow="Outros registros"
+                title="Outras marcações"
+                items={other}
+              />
             </>
           )}
         </div>

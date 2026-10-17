@@ -5,30 +5,18 @@ import { z } from 'zod';
 import { mapDatabaseError } from '@/lib/actions/database-errors';
 import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
 import { requireSession } from '@/lib/auth/session';
-import { clubIdSchema, createClubSchema, updateClubSchema } from './schemas';
+import { clubIdSchema, updateClubSchema } from './schemas';
 
 type Result =
   | { ok: true; message: string; data?: { id?: string; version?: number } }
   | { ok: false; message: string; code?: string };
 
-export async function createClub(input: unknown): Promise<Result> {
-  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
-  const parsed = createClubSchema.safeParse(input);
-  if (!parsed.success)
-    return { ok: false, message: 'Revise nome, descrição e privacidade.', code: 'validation' };
-  const session = await requireSession();
-  if (!session)
-    return { ok: false, message: 'Entre para criar um clube.', code: 'unauthenticated' };
-
-  const { data, error } = await session.client.rpc('create_user_club', {
-    p_name: parsed.data.name,
-    p_description: parsed.data.description,
-    p_private: parsed.data.isPrivate,
-    p_request_id: parsed.data.requestId,
-  });
-  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
-  revalidatePath('/clubes');
-  return { ok: true, message: 'Clube criado.', data: { id: data } };
+export async function createClub(): Promise<Result> {
+  return {
+    ok: false,
+    message: 'A criação de clubes avulsos foi descontinuada. Todo clube no DIYSPUR é vinculado oficialmente a um livro através do catálogo.',
+    code: 'deprecated',
+  };
 }
 
 export async function joinClub(input: unknown): Promise<Result> {

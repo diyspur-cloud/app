@@ -65,7 +65,12 @@ const organizationSchema = {
   name: 'DIYSPUR',
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
-  description: 'Clube de leitura em português do Brasil.',
+  description: 'Plataforma de leitura coletiva e segunda tela para livros e literatura em comunidade no Brasil.',
+  sameAs: [
+    'https://www.instagram.com/diyspur/?hl=en',
+    'https://www.tiktok.com/@diyspur',
+    'https://www.youtube.com/channel/UC71Z6wmNZSuuMbC0_mHm6iw',
+  ],
 };
 
 const websiteSchema = {
@@ -83,9 +88,19 @@ const websiteSchema = {
 const themeInitScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('theme');
-    var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var storedTheme = localStorage.getItem('theme');
+    var isDark = storedTheme ? storedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+    var storedDensity = localStorage.getItem('density');
+    if (storedDensity) {
+      document.documentElement.setAttribute('data-density', storedDensity);
+    }
+
+    var storedContrast = localStorage.getItem('contrast');
+    if (storedContrast) {
+      document.documentElement.setAttribute('data-contrast', storedContrast);
+    }
   } catch (e) {}
 })();
 `;

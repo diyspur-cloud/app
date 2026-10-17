@@ -26,12 +26,27 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* 1. Hero Section — Alinhado com o Wireframe do SDD */}
-      <section className="hero">
-        <div className="container hero-copy">
+      {/* 1. Hero Section — Mission Control da Leitura Coletiva */}
+      <section className="hero relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: '-15%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'min(860px, 100vw)',
+            height: '380px',
+            background: 'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--brand) 18%, transparent) 0%, color-mix(in srgb, #06b6d4 10%, transparent) 40%, transparent 70%)',
+            filter: 'blur(45px)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+        <div className="container hero-copy relative z-10">
           <div className="hero-badge">
-            <span className="badge-dot" aria-hidden="true" />
-            O CLUBE DE LEITURA COLETIVO
+            <span className="badge-dot" aria-hidden="true" style={{ animation: 'pulseGlow 2.5s infinite' }} />
+            O CLUBE DE LEITURA COLETIVO · SEGUNDA TELA
           </div>
           <h1>
             Histórias ganham vida quando lidas <em>juntas.</em>

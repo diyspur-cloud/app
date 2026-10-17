@@ -9,14 +9,18 @@ import {
 } from '@/lib/community-navigation';
 import { createServerSupabase } from '@/lib/supabase/clients';
 import {
+  DEFAULT_CHANNEL_SLUGS,
+  type DiscussionEntryResult,
+} from '@/lib/discussion-contract';
+import {
   acceptChannelSpoilersSchema,
   applyClubSanctionSchema,
   blockCommunityUserSchema,
   createTopicChannelSchema,
   deleteClubMessageSchema,
   editClubMessageSchema,
-  ensureChapterDiscussionSchema,
-  ensureOfficialBookGroupSchema,
+  openChapterDiscussionSchema,
+  openBookDiscussionSchema,
   revokeChannelSpoilersSchema,
   sendClubMessageSchema,
   setChannelPreferenceSchema,
@@ -26,74 +30,103 @@ import type { ClubMessageView } from './types';
 
 export async function openOfficialBookGroupAction(input: {
   bookId: string;
-  channelSlug?: string;
-}): Promise<{ ok: boolean; href?: string; message?: string }> {
-  if (isReadOnlyPreview()) {
-    return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
-  }
-  const parsed = ensureOfficialBookGroupSchema.safeParse({ bookId: input.bookId });
+  bookSlug: string;
+  destination?: 'hub' | 'safe' | 'spoilers';
+}): Promise<DiscussionEntryResult> {
+  const parsed = openBookDiscussionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? 'Livro inválido.' };
+    return { ok: false, code: 'invalid_input', message: 'Livro inválido.' };
+  }
+  if (isReadOnlyPreview()) {
+    return { ok: false, code: 'unavailable', message: READ_ONLY_PREVIEW_MESSAGE };
   }
 
   try {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase.rpc('ensure_official_book_group', {
+    const client = await createServerSupabase();
+    const { data: auth, error: authError } = await client.auth.getClaims();
+    if (authError || !auth?.claims?.sub) {
+      const returnTo = `/livros/${encodeURIComponent(parsed.data.bookSlug)}`;
+      return {
+        ok: false,
+        code: 'unauthenticated',
+        message: 'Entre para participar do grupo deste livro.',
+        loginHref: `/entrar?redirect=${encodeURIComponent(returnTo)}`,
+      };
+    }
+
+    const { data, error } = await client.rpc('ensure_official_book_group', {
       p_book: parsed.data.bookId,
     });
-
     if (error || !data?.[0]) {
-      const mapped = mapDatabaseError(error?.code, error?.message);
-      return { ok: false, message: mapped.message };
+      return {
+        ok: false,
+        code: 'unavailable',
+        message: 'Não foi possível abrir o grupo agora. Tente novamente.',
+      };
     }
 
     const row = data[0];
     revalidatePath('/clubes');
-    revalidatePath(buildClubHref(row.club_slug));
-
-    const href = input.channelSlug
-      ? buildClubChannelHref({ clubSlug: row.club_slug, channelSlug: input.channelSlug })
-      : buildClubChannelHref({ clubSlug: row.club_slug, channelSlug: 'sem-spoilers' });
-
-    return { ok: true, href };
+    revalidatePath('/comunidade');
+    revalidatePath(`/livros/${parsed.data.bookSlug}`);
+    const channelSlug =
+      parsed.data.destination === 'spoilers'
+        ? DEFAULT_CHANNEL_SLUGS.spoilers
+        : DEFAULT_CHANNEL_SLUGS.safe;
+    return {
+      ok: true,
+      href:
+        parsed.data.destination === 'hub'
+          ? buildClubHref(row.club_slug)
+          : buildClubChannelHref({ clubSlug: row.club_slug, channelSlug }),
+    };
   } catch {
-    return { ok: false, message: 'Não foi possível abrir o grupo do livro agora.' };
+    return { ok: false, code: 'unavailable', message: 'Grupo indisponível no momento.' };
   }
 }
 
 export async function openChapterDiscussionAction(input: {
   chapterId: string;
   videoSec?: number | null;
-}): Promise<{ ok: boolean; href?: string; message?: string }> {
-  if (isReadOnlyPreview()) {
-    return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
-  }
-  const parsed = ensureChapterDiscussionSchema.safeParse(input);
+}): Promise<DiscussionEntryResult> {
+  const parsed = openChapterDiscussionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? 'Capítulo inválido.' };
+    return { ok: false, code: 'invalid_input', message: 'Capítulo inválido.' };
   }
-
+  if (isReadOnlyPreview()) {
+    return { ok: false, code: 'unavailable', message: READ_ONLY_PREVIEW_MESSAGE };
+  }
   try {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase.rpc('ensure_chapter_discussion', {
+    const client = await createServerSupabase();
+    const { data: auth, error: authError } = await client.auth.getClaims();
+    if (authError || !auth?.claims?.sub) {
+      const returnTo = `/capitulos/${parsed.data.chapterId}`;
+      return {
+        ok: false,
+        code: 'unauthenticated',
+        message: 'Entre para conversar sobre este capítulo.',
+        loginHref: `/entrar?redirect=${encodeURIComponent(returnTo)}`,
+      };
+    }
+    const { data, error } = await client.rpc('ensure_chapter_discussion', {
       p_chapter: parsed.data.chapterId,
     });
-
     if (error || !data?.[0]) {
       const mapped = mapDatabaseError(error?.code, error?.message);
-      return { ok: false, message: mapped.message };
+      return { ok: false, code: 'unavailable', message: mapped.message };
     }
-
     const row = data[0];
-    const href = buildClubChannelHref({
-      clubSlug: row.club_slug,
-      channelSlug: row.channel_slug,
-      videoSec: parsed.data.videoSec ?? null,
-    });
-
-    return { ok: true, href };
+    revalidatePath(buildClubHref(row.club_slug));
+    return {
+      ok: true,
+      href: buildClubChannelHref({
+        clubSlug: row.club_slug,
+        channelSlug: row.channel_slug,
+        videoSec: parsed.data.videoSec ?? null,
+      }),
+    };
   } catch {
-    return { ok: false, message: 'Não foi possível abrir a discussão deste capítulo.' };
+    return { ok: false, code: 'unavailable', message: 'Discussão indisponível no momento.' };
   }
 }
 

@@ -3,14 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getBook } from '@/features/catalog/queries';
-import { AddBookToList } from '@/components/lists/add-book-to-list';
-import { AddQueueButton } from '@/components/up-next/add-queue-button';
 import { ShareBookButton } from '@/components/books/share-book-button';
 import { BookReadingControl } from '@/components/books/book-reading-control';
 import { BookReadingStats } from '@/components/books/book-reading-stats';
-import { BookCommunityPanel } from '@/components/books/book-community-panel';
+import { DiscussionEntryButton } from '@/components/discussions/discussion-entry-button';
 import { getBookReadingStats, getMyBookReadingState } from '@/features/reading/queries';
-import { createServerSupabase } from '@/lib/supabase/clients';
 import { JsonLd } from '@/components/json-ld';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -41,132 +38,85 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
   const book = await getBook(slug);
   if (!book) notFound();
 
-  const [readingState, readingStats, communityData] = await Promise.all([
+  const [readingState, readingStats] = await Promise.all([
     getMyBookReadingState(book.id),
     getBookReadingStats(book.id),
-    (async () => {
-      try {
-        const supabase = await createServerSupabase();
-        const { data: club } = await supabase
-          .from('user_clubs')
-          .select('id,slug,name')
-          .eq('official_book_id', book.id)
-          .is('archived_at', null)
-          .maybeSingle();
-
-        if (!club) return null;
-
-        const [{ count: memberCount }, { count: channelsCount }, { data: upcomingMeetings }] =
-          await Promise.all([
-            supabase
-              .from('user_club_members')
-              .select('user_id', { count: 'exact', head: true })
-              .eq('club_id', club.id),
-            supabase
-              .from('club_channels')
-              .select('id', { count: 'exact', head: true })
-              .eq('club_id', club.id),
-            supabase
-              .from('meetings')
-              .select('id,title,scheduled_at,kind,chapter_id')
-              .eq('book_id', book.id)
-              .in('status', ['scheduled', 'live'])
-              .order('scheduled_at')
-              .limit(3),
-          ]);
-
-        return {
-          officialClub: {
-            id: club.id,
-            slug: club.slug,
-            name: club.name,
-            memberCount: memberCount ?? 0,
-          },
-          channelsCount: channelsCount ?? 0,
-          upcomingMeetings: (upcomingMeetings ?? []).map((m) => ({
-            id: m.id,
-            title: m.title,
-            scheduledAt: m.scheduled_at,
-            kind: m.kind,
-            chapterId: m.chapter_id,
-          })),
-        };
-      } catch {
-        return null;
-      }
-    })(),
   ]);
 
   const safeExternal = book.amazon_url && /^https:\/\//i.test(book.amazon_url);
-  const authorWebsite = book.authors?.website_url && /^https:\/\//i.test(book.authors.website_url) ? book.authors.website_url : null;
-  const authorInstagram = book.authors?.instagram && /^https:\/\//i.test(book.authors.instagram) ? book.authors.instagram : null;
-  const publicationDate = book.publication_date
-    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${book.publication_date}T00:00:00.000Z`))
-    : null;
-  const dimensions = book.width_mm && book.height_mm && book.depth_mm
-    ? `${(book.width_mm / 10).toLocaleString('pt-BR')} × ${(book.height_mm / 10).toLocaleString('pt-BR')} × ${(book.depth_mm / 10).toLocaleString('pt-BR')} cm`
-    : null;
   const editionDetails = [
-    { label: 'Editora', value: book.publisher },
-    { label: 'Tradução', value: book.translator },
-    { label: 'Lançamento', value: publicationDate },
-    { label: 'Edição', value: book.edition_number ? `${book.edition_number}ª edição` : null },
-    { label: 'Formato', value: book.format },
-    { label: 'Dimensões', value: dimensions },
-    { label: 'Classificação indicativa', value: book.content_rating },
-    { label: 'Idioma', value: book.language === 'pt-BR' ? 'Português (Brasil)' : book.language },
-    { label: 'ISBN-13', value: book.isbn13 },
-  ].filter((detail) => detail.value !== null);
+    book.edition_number ? { label: 'Edição', value: `${book.edition_number}ª` } : null,
+    book.format ? { label: 'Formato', value: book.format } : null,
+    book.publisher ? { label: 'Editora', value: book.publisher } : null,
+    book.language ? { label: 'Idioma', value: book.language } : null,
+    book.isbn13 ? { label: 'ISBN-13', value: book.isbn13 } : null,
+    book.publication_year ? { label: 'Ano', value: String(book.publication_year) } : null,
+    book.translator ? { label: 'Tradução', value: book.translator } : null,
+  ].filter((item): item is { label: string; value: string } => item !== null);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://diyspur.vercel.app';
-  const bookUrl = `${siteUrl}/livros/${encodeURIComponent(book.slug)}`;
-  const bookSchema = {
+  const bookCanonicalUrl = `${siteUrl}/livros/${encodeURIComponent(book.slug)}`;
+
+  const jsonLdData = {
     '@context': 'https://schema.org',
     '@type': 'Book',
-    '@id': `${bookUrl}#book`,
+    '@id': `${bookCanonicalUrl}#book`,
     name: book.title,
-    url: bookUrl,
-    ...(book.synopsis ? { description: book.synopsis } : {}),
-    ...(book.authors?.name ? { author: { '@type': 'Person', name: book.authors.name } } : {}),
-    ...(book.cover_url ? { image: book.cover_url } : {}),
-    ...(book.isbn13 ? { isbn: book.isbn13 } : {}),
-    ...(book.total_pages ? { numberOfPages: book.total_pages } : {}),
-    ...(book.publisher ? { publisher: { '@type': 'Organization', name: book.publisher } } : {}),
+    url: bookCanonicalUrl,
+    author: book.authors?.name ? { '@type': 'Person', name: book.authors.name } : undefined,
+    isbn: book.isbn13 ?? undefined,
+    numberOfPages: book.total_pages ?? undefined,
     inLanguage: book.language ?? 'pt-BR',
+    publisher: book.publisher ? { '@type': 'Organization', name: book.publisher } : undefined,
+    description: book.synopsis ?? undefined,
+    image: book.cover_url ?? undefined,
+    subjectOf: {
+      '@type': 'DiscussionForumPosting',
+      headline: `Clube de Leitura e Discussão Sem Spoilers: ${book.title}`,
+      url: bookCanonicalUrl,
+      publisher: {
+        '@type': 'Organization',
+        name: 'DIYSPUR',
+        url: siteUrl,
+      },
+    },
   };
 
   return (
     <div className="container">
-      <JsonLd data={bookSchema} />
-
-      <header className="detail-head">
-        <nav className="breadcrumbs" aria-label="Trilha de navegação">
-          <Link href="/">Início</Link><span aria-hidden="true">/</span>
-          <Link href="/livros">Livros</Link><span aria-hidden="true">/</span>
-          <span aria-current="page">{book.title}</span>
-        </nav>
-        <div className="book-detail">
-          <div className="book-detail-cover">
-            {book.cover_url
-              ? <Image src={book.cover_url} alt={`Capa de ${book.title}`} width={480} height={696} priority />
-              : <span className="cover-placeholder">{book.title}</span>}
-          </div>
-          <div>
-            <span className="eyebrow">Leitura do clube</span>
-            <h1>{book.title}</h1>
-            <p className="author">
-              {book.authors?.name ?? 'Autor(a) convidado(a)'}{book.publication_year ? ` · ${book.publication_year}` : ''}
-            </p>
-            {book.authors?.bio ? <p className="author-bio">{book.authors.bio}</p> : null}
-            {authorWebsite || authorInstagram ? (
-              <div className="author-links">
-                {authorWebsite ? <a href={authorWebsite} target="_blank" rel="noopener noreferrer">Site oficial da autora ↗</a> : null}
-                {authorInstagram ? <a href={authorInstagram} target="_blank" rel="noopener noreferrer">Instagram ↗</a> : null}
+      <JsonLd data={jsonLdData} />
+      <header className="book-hero">
+        <div className="book-hero-grid">
+          <div className="book-cover-wrap">
+            {book.cover_url ? (
+              <Image
+                alt={`Capa do livro ${book.title}`}
+                className="book-cover-image"
+                height={480}
+                priority
+                src={book.cover_url}
+                width={320}
+              />
+            ) : (
+              <div className="book-cover-placeholder" aria-label={`Capa indisponível para ${book.title}`}>
+                <span>{book.title}</span>
               </div>
+            )}
+          </div>
+          <div className="book-hero-content">
+            <span className="eyebrow">Clube de Leitura</span>
+            <h1>{book.title}</h1>
+            {book.authors?.name ? (
+              <p className="book-author">
+                por <strong>{book.authors.name}</strong>
+              </p>
             ) : null}
-            {book.tags?.length ? <div className="detail-pills">{book.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div> : null}
-            <p className="synopsis">{book.synopsis ?? 'Uma nova leitura começa por aqui. Em breve, mais detalhes sobre esta história.'}</p>
-            <div className="detail-pills">
+            {book.synopsis ? <p className="book-synopsis">{book.synopsis}</p> : null}
+            <div className="book-meta-tags">
+              {book.content_rating ? <span className="tag tag-accent">{book.content_rating}</span> : null}
+              {book.tags?.map((tag) => (
+                <span className="tag" key={tag}>{tag}</span>
+              ))}
               {book.total_pages ? <span className="tag">{book.total_pages} páginas</span> : null}
               {book.total_chapters ? <span className="tag">{book.total_chapters} capítulos</span> : null}
             </div>
@@ -201,7 +151,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
               </section>
             ) : null}
 
-            {/* Seção Onde Comprar & Compartilhar Leitura (MON-01 & SOCIAL-01) */}
+            {/* Seção Onde Comprar & Compartilhar Leitura */}
             <div className="book-purchasing-panel" style={{ marginTop: '24px', padding: '16px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
               <span className="eyebrow">Acompanhe a leitura</span>
               <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--text-secondary)', margin: '4px 0 14px' }}>
@@ -219,6 +169,12 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
                   </a>
                 ) : null}
                 <ShareBookButton bookTitle={book.title} bookSlug={book.slug} />
+                <Link
+                  className="btn btn-secondary btn-sm"
+                  href={`/leituras-compartilhadas?livro=${encodeURIComponent(book.id)}`}
+                >
+                  Convidar amigo por e-mail
+                </Link>
                 {safeExternal ? (
                   <p className="field-hint" style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', margin: '8px 0 0', width: '100%' }}>
                     * Como participante do Programa de Associados da Amazon, o DIYSPUR pode receber uma comissão por compras qualificadas, sem nenhum custo extra para você.
@@ -227,22 +183,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
               </div>
             </div>
 
-            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              {book.signedIn ? (
-                <AddQueueButton bookId={book.id} />
-              ) : (
-                <Link
-                  className="btn btn-secondary btn-sm"
-                  href={`/entrar?redirect=${encodeURIComponent(`/livros/${book.slug}`)}`}
-                >
-                  Entrar para guardar na fila
-                </Link>
-              )}
-              {book.readerLists ? (
-                <AddBookToList bookId={book.id} lists={book.readerLists} />
-              ) : null}
-            </div>
-
+            {/* Controle Canônico de Leitura */}
             <div style={{ marginTop: '20px' }}>
               <BookReadingControl
                 bookId={book.id}
@@ -261,16 +202,33 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
         </div>
       </header>
 
-      {communityData?.officialClub && (
-        <BookCommunityPanel
-          bookId={book.id}
-          bookTitle={book.title}
-          officialClub={communityData.officialClub}
-          channelsCount={communityData.channelsCount}
-          upcomingMeetings={communityData.upcomingMeetings}
-        />
-      )}
+      {/* Seção da Comunidade Canônica do Livro */}
+      <section className="section" aria-labelledby="book-group-title">
+        <div className="section-head">
+          <div>
+            <span className="eyebrow">Comunidade oficial</span>
+            <h2 id="book-group-title">Leia e converse em comunidade</h2>
+          </div>
+        </div>
+        <p>Um clube exclusivo para este livro, com conversas sem spoilers e debates aprofundados por capítulo.</p>
+        <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <DiscussionEntryButton
+            mode="book"
+            bookId={book.id}
+            bookSlug={book.slug}
+            label="Grupo do livro"
+            className="btn btn-primary"
+          />
+          <Link href="/desafios" className="btn btn-secondary">
+            Ver desafios de leitura
+          </Link>
+          <Link href="/clubes" className="btn btn-ghost">
+            Explorar todos os clubes
+          </Link>
+        </div>
+      </section>
 
+      {/* Temporadas e Capítulos */}
       <section className="section">
         <div className="section-head">
           <div>

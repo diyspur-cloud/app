@@ -274,6 +274,16 @@ img, svg {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.04); }
+}
+
 /* =====================================================================
    Header Navigation (Mobile First)
    ===================================================================== */
@@ -282,10 +292,11 @@ img, svg {
   top: 0;
   z-index: 100;
   height: var(--nav-height);
-  background: color-mix(in srgb, var(--background) 86%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--separator);
+  background: color-mix(in srgb, var(--background) 78%, transparent);
+  backdrop-filter: var(--glass-blur, blur(20px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(20px));
+  border-bottom: 1px solid var(--border-glass, var(--separator));
+  box-shadow: 0 1px 0 0 var(--hairline);
   transition: background var(--duration-fast), border-color var(--duration-fast);
 }
 
@@ -1073,30 +1084,39 @@ img, svg {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  transition: transform var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-card);
+  padding: 6px;
+  position: relative;
+  transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-base) var(--ease-spring);
 }
 .book-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 .book-card-cover {
   aspect-ratio: 2 / 2.9;
   overflow: hidden;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-card) - 4px);
+  border: 1px solid var(--border-glass, var(--border));
   background: var(--surface-2);
   box-shadow: var(--shadow-sm);
   display: grid;
   place-items: center;
+  position: relative;
+  transition: border-color var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) var(--ease-spring);
+}
+.book-card:hover .book-card-cover {
+  border-color: var(--border-specular, var(--brand));
+  box-shadow: var(--shadow-ambient, var(--shadow-md));
 }
 .book-card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--duration-base) var(--ease-out);
+  transition: transform var(--duration-fluid) var(--ease-spring);
 }
 .book-card:hover .book-card-cover img {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .book-card-title-cover {
@@ -3144,26 +3164,31 @@ img, svg {
   flex-direction: column;
   padding: var(--space-6);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass, var(--border));
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
   position: relative;
-  transition: transform var(--duration-fast), border-color var(--duration-fast);
+  transition: transform var(--duration-fast) var(--ease-spring), border-color var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) var(--ease-spring);
 }
 
 .step-card:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
+  border-color: var(--border-specular, var(--border-strong));
+  box-shadow: var(--shadow-ambient, var(--shadow-md));
+  transform: translateY(-4px);
 }
 
 .step-number {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--brand) 20%, transparent);
   color: var(--brand);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
@@ -3190,10 +3215,17 @@ img, svg {
   gap: var(--space-6);
   padding: var(--space-6);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass, var(--border));
   border-radius: var(--radius-large);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-ambient, var(--shadow-md));
+  backdrop-filter: var(--glass-blur, blur(20px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(20px));
   margin-top: var(--space-6);
+  transition: border-color var(--duration-base) var(--ease-spring);
+}
+
+.season-spotlight-card:hover {
+  border-color: var(--border-specular, var(--border-strong));
 }
 
 @media (min-width: 768px) {
@@ -3212,6 +3244,7 @@ img, svg {
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   aspect-ratio: 2 / 2.9;
+  border: 1px solid var(--border-glass, var(--border));
 }
 
 .season-spotlight-cover img {
@@ -3832,4 +3865,70 @@ img, svg {
 .meeting-form-actions button {
   min-height: 48px;
   padding: 0 20px;
+}
+
+/* =====================================================================
+   Ranking Tabs and Book Rankings
+   ===================================================================== */
+.ranking-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1.25rem;
+}
+
+.ranking-tabs a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--surface-1);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: var(--text-body-sm);
+  transition: all var(--duration-fast) ease-in-out;
+}
+
+.ranking-tabs a[aria-current='page'] {
+  background: var(--brand);
+  color: var(--brand-text, #ffffff);
+  border-color: var(--brand);
+  font-weight: 600;
+}
+
+.ranking-tabs a:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.book-ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.book-ranking-row {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.book-ranking-row .ranking-pos {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (max-width: 639px) {
+  .ranking-tabs a {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
 }

@@ -1,121 +1,139 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createServerSupabase } from '@/lib/supabase/clients';
-import { ReportButton } from '@/components/moderation/report-button';
-import { CommentSpoilerCard } from '@/components/comments/comment-spoiler-card';
-import { chapterLabel } from '@/lib/chapter-label';
 
 export const metadata: Metadata = {
-  title: 'Comunidade',
-  description: 'Ideias, perguntas e conversas entre leitores DIYSPUR.',
+  title: 'Comunidade de Leitura | DIYSPUR',
+  description: 'Lista de todos os clubes e grupos oficiais de leitura organizados por livro.',
   alternates: { canonical: '/comunidade' },
 };
 
-type CommunityPost = {
-  id: string;
-  chapter_id: string;
-  user_id: string;
-  content: string | null;
-  is_spoiler: boolean;
-  is_locked: boolean;
-  created_at: string;
-};
-
 export default async function CommunityPage() {
-  let posts: CommunityPost[] = [];
-  let viewerId: string | null = null;
+  let clubs: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    official_book_id: string | null;
+    books?: {
+      id: string;
+      slug: string;
+      title: string;
+      cover_url: string | null;
+      synopsis: string | null;
+    } | null;
+  }> = [];
   let hasError = false;
-  const chapters = new Map<string, { id: string; title: string; number: number }>();
-  const authors = new Map<string, { display_name: string | null; username: string | null }>();
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-    try {
-      const client = await createServerSupabase();
-      const { data: claims } = await client.auth.getClaims();
-      viewerId = typeof claims?.claims?.sub === 'string' ? claims.claims.sub : null;
-      const { data, error } = await client
-        .from('v_comments_visible')
-        .select('id,chapter_id,user_id,content,is_spoiler,is_locked,created_at')
-        .order('created_at', { ascending: false })
-        .limit(100);
+  try {
+    const client = await createServerSupabase();
+    const { data, error } = await client
+      .from('user_clubs')
+      .select('id,slug,name,official_book_id,books!user_clubs_official_book_id_fkey(id,slug,title,cover_url,synopsis)')
+      .eq('kind', 'official')
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .limit(36);
 
-      if (error) {
-        console.error('Community feed query failed', error.code);
-        hasError = true;
-      } else {
-        posts = (data ?? []) as CommunityPost[];
-        const chapterIds = [...new Set(posts.map((post) => post.chapter_id))];
-        const userIds = [...new Set(posts.map((post) => post.user_id))];
-        const [{ data: chapterRows }, { data: authorRows }] = await Promise.all([
-          client.from('chapters').select('id,title,number').in('id', chapterIds),
-          client.from('v_profiles_public').select('id,display_name,username').in('id', userIds),
-        ]);
-        for (const chapter of chapterRows ?? []) chapters.set(chapter.id, chapter);
-        for (const author of authorRows ?? []) if (author.id) authors.set(author.id, author);
-      }
-    } catch (error) {
-      console.error('Community feed unavailable', error instanceof Error ? error.name : 'unknown_error');
+    if (error) {
+      console.error('Community directory query failed', error.code);
       hasError = true;
+    } else {
+      clubs = (data ?? []).map((c) => ({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        official_book_id: c.official_book_id,
+        books: Array.isArray(c.books) ? c.books[0] : c.books,
+      }));
     }
+  } catch (error) {
+    console.error('Community directory unavailable', error instanceof Error ? error.name : 'unknown_error');
+    hasError = true;
   }
 
   return (
     <section className="container">
       <header className="page-intro">
-        <span className="eyebrow">Leitores, leitores</span>
-        <h1>
-          As boas conversas<br />
-          <em>continuam aqui.</em>
-        </h1>
-        <p>Impressões, perguntas e aqueles detalhes que só aparecem quando a gente lê junto.</p>
+        <span className="eyebrow">Comunidade DIYSPUR</span>
+        <h1>Clubes e Grupos de Leitura</h1>
+        <p>
+          Cada livro tem seu grupo oficial no DIYSPUR. Entre para conversar nos canais <em>sem-spoilers</em>, 
+          debater capítulos específicos ou acompanhar os encontros do livro.
+        </p>
       </header>
 
       {hasError ? (
-        <div className="empty-state">
-          <h2>Não foi possível carregar as conversas da comunidade agora.</h2>
-          <p>Tente atualizar a página em alguns instantes.</p>
+        <div className="notice" role="alert" style={{ marginBlock: '24px' }}>
+          Não foi possível carregar a lista de clubes no momento. Tente novamente mais tarde.
         </div>
-      ) : posts.length ? (
-        <div className="section" style={{ paddingTop: 10 }}>
-          <div className="timeline">
-            {posts.map((post) => {
-              const chapter = chapters.get(post.chapter_id);
-              const author = authors.get(post.user_id);
-              return (
-                <article className="member-card" key={post.id}>
-                  {chapter && (
-                    <Link className="field-hint" href={`/capitulos/${chapter.id}`}>
-                      {chapterLabel(chapter.title, chapter.number)}
-                    </Link>
-                  )}
-                  <CommentSpoilerCard
-                    content={post.content}
-                    isSpoiler={post.is_spoiler}
-                    isLocked={post.is_locked}
-                    chapterNumber={chapter?.number}
-                  />
-                  <span className="field-hint">
-                    {author?.display_name ?? (author?.username ? `@${author.username}` : 'Leitor da comunidade')} ·{' '}
-                    {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(post.created_at))}
-                  </span>
-                  {viewerId && <ReportButton contentType="comment" contentId={post.id} path="/comunidade" />}
-                </article>
-              );
-            })}
+      ) : clubs.length === 0 ? (
+        <div className="empty-state">
+          <h2>Nenhum clube oficial aberto ainda.</h2>
+          <p>Escolha um livro do catálogo para abrir o primeiro grupo de leitura da comunidade.</p>
+          <div style={{ marginTop: '16px' }}>
+            <Link className="button button-dark button-small" href="/livros">
+              Explorar catálogo de livros
+            </Link>
           </div>
         </div>
       ) : (
-        <div className="empty-state">
-          <div className="empty-state-mark" aria-hidden="true">✳</div>
-          <h2>Um lugar para pensar junto</h2>
-          <p>
-            As conversas dos capítulos aparecem por aqui conforme a leitura acontece. Quer começar? Escolha uma história e venha com suas perguntas.
-          </p>
-          <div className="empty-actions">
-            <Link className="button button-small" href="/livros">
-              Encontrar uma leitura
-            </Link>
-          </div>
+        <div className="catalog-grid" style={{ marginTop: '32px' }}>
+          {clubs.map((club) => {
+            const book = club.books;
+            return (
+              <article className="book-card" key={club.id}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  {book?.cover_url ? (
+                    <Image
+                      src={book.cover_url}
+                      alt={book.title}
+                      width={70}
+                      height={105}
+                      style={{ borderRadius: 'var(--radius-sm)', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 70,
+                        height: 105,
+                        background: 'var(--surface-2)',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 'var(--text-caption)',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      Capa
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <span className="eyebrow">Clube oficial</span>
+                    <h3 style={{ margin: '4px 0 6px' }}>
+                      <Link href={`/clubes/${club.slug}`}>{club.name}</Link>
+                    </h3>
+                    {book && (
+                      <p className="field-hint" style={{ margin: 0 }}>
+                        Livro: <Link className="text-link" href={`/livros/${book.slug}`}>{book.title}</Link>
+                      </p>
+                    )}
+                    {book?.synopsis && (
+                      <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                        {book.synopsis.slice(0, 110)}…
+                      </p>
+                    )}
+                    <div style={{ marginTop: '12px' }}>
+                      <Link className="button button-small button-dark" href={`/clubes/${club.slug}`}>
+                        Entrar no clube
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

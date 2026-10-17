@@ -64,6 +64,9 @@ export function SiteFooter() {
           <Link href="/privacidade">Privacidade</Link>
           <Link href="/termos">Termos</Link>
           <a href={`mailto:${supportEmail}`}>Suporte</a>
+          <a href="https://www.instagram.com/diyspur/?hl=en" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="https://www.tiktok.com/@diyspur" target="_blank" rel="noopener noreferrer">TikTok</a>
+          <a href="https://www.youtube.com/channel/UC71Z6wmNZSuuMbC0_mHm6iw" target="_blank" rel="noopener noreferrer">YouTube</a>
         </div>
         <p className="footer-affiliate-note" style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', margin: '8px 0 0', textAlign: 'center', maxWidth: '580px' }}>
           O DIYSPUR participa do Programa de Associados da Amazon. Compras qualificadas geram comissão que apoia a manutenção do clube sem custo adicional para o leitor.

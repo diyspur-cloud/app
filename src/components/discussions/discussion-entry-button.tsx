@@ -11,7 +11,8 @@ type DiscussionEntryProps =
   | {
       mode: 'book';
       bookId: string;
-      channelSlug?: string;
+      bookSlug: string;
+      destination?: 'hub' | 'safe' | 'spoilers';
       label?: string;
       className?: string;
     }
@@ -31,32 +32,38 @@ export function DiscussionEntryButton(props: DiscussionEntryProps) {
   const handleClick = () => {
     setErrorMessage(null);
     startTransition(async () => {
-      if (props.mode === 'book') {
-        const res = await openOfficialBookGroupAction({
-          bookId: props.bookId,
-          channelSlug: props.channelSlug,
-        });
-        if (res.ok && res.href) {
+      try {
+        const res =
+          props.mode === 'book'
+            ? await openOfficialBookGroupAction({
+                bookId: props.bookId,
+                bookSlug: props.bookSlug,
+                destination: props.destination ?? 'hub',
+              })
+            : await openChapterDiscussionAction({
+                chapterId: props.chapterId,
+                videoSec: props.videoSec ?? null,
+              });
+
+        if (res.ok) {
           router.push(res.href);
-        } else {
-          setErrorMessage(res.message ?? 'Não foi possível abrir o grupo do livro.');
+          return;
         }
-      } else {
-        const res = await openChapterDiscussionAction({
-          chapterId: props.chapterId,
-          videoSec: props.videoSec ?? null,
-        });
-        if (res.ok && res.href) {
-          router.push(res.href);
-        } else {
-          setErrorMessage(res.message ?? 'Não foi possível abrir a discussão deste capítulo.');
+
+        if (res.code === 'unauthenticated' && res.loginHref) {
+          router.push(res.loginHref);
+          return;
         }
+
+        setErrorMessage(res.message);
+      } catch {
+        setErrorMessage('Não foi possível abrir a conversa no momento. Tente novamente.');
       }
     });
   };
 
   const defaultLabel =
-    props.mode === 'book' ? 'Participar da discussão do livro' : 'Discutir este capítulo no grupo';
+    props.mode === 'book' ? 'Grupo do livro' : 'Comentar no grupo';
 
   return (
     <div className="discussion-entry-wrap">
@@ -65,6 +72,7 @@ export function DiscussionEntryButton(props: DiscussionEntryProps) {
         className={props.className ?? 'btn btn-primary'}
         onClick={handleClick}
         disabled={isPending}
+        aria-busy={isPending}
       >
         {isPending ? 'Abrindo conversa…' : (props.label ?? defaultLabel)}
       </button>

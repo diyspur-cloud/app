@@ -6,10 +6,17 @@ export const ensureOfficialBookGroupSchema = z.object({
   bookId: z.string().regex(UUID_REGEX, 'Livro inválido.'),
 });
 
+export const openBookDiscussionSchema = ensureOfficialBookGroupSchema.extend({
+  bookSlug: z.string().trim().min(1).max(160),
+  destination: z.enum(['hub', 'safe', 'spoilers']).default('hub'),
+});
+
 export const ensureChapterDiscussionSchema = z.object({
   chapterId: z.string().regex(UUID_REGEX, 'Capítulo inválido.'),
   videoSec: z.number().int().min(0).max(86400).nullable().optional(),
 });
+
+export const openChapterDiscussionSchema = ensureChapterDiscussionSchema;
 
 export const sendClubMessageSchema = z.object({
   channelId: z.string().regex(UUID_REGEX, 'Canal inválido.'),

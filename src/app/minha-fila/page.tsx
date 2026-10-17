@@ -32,9 +32,14 @@ export default async function UpNextPage() {
             <span className="eyebrow">Prioridade</span>
             <h2>Livros na sua fila ({items.length})</h2>
           </div>
-          <Link className="text-link" href="/livros">
-            Explorar catálogo →
-          </Link>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Link className="text-link" href="/listas">
+              Organizar em listas de leitura →
+            </Link>
+            <Link className="text-link" href="/livros">
+              Explorar catálogo →
+            </Link>
+          </div>
         </div>
 
         {items.length ? (

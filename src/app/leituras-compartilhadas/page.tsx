@@ -214,9 +214,25 @@ function SharedReadCard({ read, book }: { read: BuddyReadView; book: Book | unde
   );
 }
 
-export default async function SharedReadsPage() {
+export default async function SharedReadsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ livro?: string }>;
+}) {
+  const query = searchParams ? await searchParams : {};
   const data = await loadSharedReadsPage();
   const redirect = encodeURIComponent('/leituras-compartilhadas');
+
+  let targetBook: { id: string; title: string; slug: string } | null = null;
+  if (query?.livro && data.userId) {
+    try {
+      const client = await createServerSupabase();
+      const { data: b } = await client.from('books').select('id,title,slug').eq('id', query.livro).maybeSingle();
+      if (b) targetBook = b;
+    } catch {
+      // non-blocking
+    }
+  }
 
   return (
     <section className="container">
@@ -224,7 +240,28 @@ export default async function SharedReadsPage() {
         <span className="eyebrow">Leitura em companhia</span>
         <h1>Ler junto,<br /><em style={{ color: 'var(--color-primary)' }}>sem pressa.</em></h1>
         <p>Acompanhe grupos autorizados, metas e checkpoints sem perder o seu ritmo de leitura.</p>
+        <div style={{ marginTop: '12px' }}>
+          <Link href="/notificacoes" className="text-link">
+            Ver notificações e convites recebidos →
+          </Link>
+        </div>
       </header>
+
+      {targetBook && (
+        <div className="member-card" style={{ marginBottom: '24px', background: 'var(--surface-2)' }}>
+          <span className="eyebrow">Compartilhar leitura</span>
+          <h2>Convidar amigo para ler {targetBook.title}</h2>
+          <p>Convide outros leitores por e-mail para acompanhar o clube e os debates deste livro com você.</p>
+          <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link className="button button-dark button-small" href={`/livros/${targetBook.slug}`}>
+              Ver ficha do livro
+            </Link>
+            <Link className="button button-quiet button-small" href="/notificacoes">
+              Acompanhar status de convites
+            </Link>
+          </div>
+        </div>
+      )}
 
       {!data.userId ? (
         <div className="member-card" role={data.error ? 'alert' : undefined}>
