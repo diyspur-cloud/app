@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toLocalDateTime } from '@/components/admin/admin-controls';
+import { toLocalDateTime } from '@/lib/date';
 
 describe('Admin datetime-local timezone conversion (QA-13)', () => {
   it('returns empty string for null, undefined, or invalid string', () => {

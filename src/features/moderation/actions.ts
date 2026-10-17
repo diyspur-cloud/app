@@ -70,6 +70,5 @@ export async function moderateContentReportAction(
     const mapped = mapDatabaseError(error.code, error.message);
     return { ok: false, message: mapped.message };
   }
-  revalidatePath('/admin/moderation');
   return { ok: true, message: 'Ação de moderação aplicada.' };
 }
