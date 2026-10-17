@@ -1,18 +1,24 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireSession } from '@/lib/auth/session';
-import { mapDatabaseError } from '@/lib/actions/database-errors';
-import { createClubSchema, updateClubSchema, clubIdSchema } from './schemas';
 import { z } from 'zod';
+import { mapDatabaseError } from '@/lib/actions/database-errors';
+import { isReadOnlyPreview, READ_ONLY_PREVIEW_MESSAGE } from '@/lib/actions/read-only';
+import { requireSession } from '@/lib/auth/session';
+import { clubIdSchema, createClubSchema, updateClubSchema } from './schemas';
 
-type Result = { ok: true; message: string; data?: { id?: string; version?: number } } | { ok: false; message: string; code?: string };
+type Result =
+  | { ok: true; message: string; data?: { id?: string; version?: number } }
+  | { ok: false; message: string; code?: string };
 
 export async function createClub(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = createClubSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: 'Revise nome, descrição e privacidade.', code: 'validation' };
+  if (!parsed.success)
+    return { ok: false, message: 'Revise nome, descrição e privacidade.', code: 'validation' };
   const session = await requireSession();
-  if (!session) return { ok: false, message: 'Entre para criar um clube.', code: 'unauthenticated' };
+  if (!session)
+    return { ok: false, message: 'Entre para criar um clube.', code: 'unauthenticated' };
 
   const { data, error } = await session.client.rpc('create_user_club', {
     p_name: parsed.data.name,
@@ -20,38 +26,41 @@ export async function createClub(input: unknown): Promise<Result> {
     p_private: parsed.data.isPrivate,
     p_request_id: parsed.data.requestId,
   });
-  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
   revalidatePath('/clubes');
   return { ok: true, message: 'Clube criado.', data: { id: data } };
 }
 
 export async function joinClub(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = clubIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Clube inválido.', code: 'validation' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para participar.', code: 'unauthenticated' };
 
   const { error } = await session.client.rpc('join_user_club', { p_club: parsed.data.clubId });
-  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
   revalidatePath('/clubes');
   revalidatePath(`/clubes/${parsed.data.clubId}`);
   return { ok: true, message: 'Você entrou no clube.' };
 }
 
 export async function leaveClub(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = clubIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Clube inválido.', code: 'validation' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para sair.', code: 'unauthenticated' };
 
   const { error } = await session.client.rpc('leave_user_club', { p_club: parsed.data.clubId });
-  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
   revalidatePath('/clubes');
   revalidatePath(`/clubes/${parsed.data.clubId}`);
   return { ok: true, message: 'Você saiu do clube.' };
 }
 
 export async function updateClub(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = updateClubSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Revise os campos.', code: 'validation' };
   const session = await requireSession();
@@ -65,21 +74,30 @@ export async function updateClub(input: unknown): Promise<Result> {
     p_private: parsed.data.isPrivate,
     p_season_id: parsed.data.seasonId ?? null,
   });
-  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
   revalidatePath('/clubes');
   revalidatePath(`/clubes/${parsed.data.slug}`);
+  revalidatePath(`/clubes/${parsed.data.slug}/configuracoes`);
   return { ok: true, message: 'Clube atualizado.', data: { version: data } };
 }
 
-const invitationSchema = z.object({
-  clubId: z.string().uuid(),
-  invitedUserId: z.string().uuid(),
-  expiresAt: z.string().datetime(),
-}).strict();
+const invitationSchema = z
+  .object({
+    clubId: z.string().uuid(),
+    invitedUserId: z.string().uuid(),
+    expiresAt: z.string().datetime(),
+  })
+  .strict();
 
 export async function inviteUser(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = invitationSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: 'Informe um usuário válido e uma data de expiração.', code: 'validation' };
+  if (!parsed.success)
+    return {
+      ok: false,
+      message: 'Informe um usuário válido e uma data de expiração.',
+      code: 'validation',
+    };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para convidar.', code: 'unauthenticated' };
 
@@ -88,17 +106,24 @@ export async function inviteUser(input: unknown): Promise<Result> {
     p_invited_user: parsed.data.invitedUserId,
     p_expires_at: parsed.data.expiresAt,
   });
-  if (error) return { ok: false, ...mapDatabaseError(error.code) };
+  if (error) return { ok: false, ...mapDatabaseError(error.code, error.message) };
   revalidatePath('/clubes');
   return { ok: true, message: 'Convite criado.' };
 }
 
 export async function inviteByUsername(input: unknown): Promise<Result> {
-  const parsed = z.object({
-    clubId: z.string().uuid(),
-    username: z.string().trim().transform((v) => v.replace(/^@/, '').toLowerCase())
-      .pipe(z.string().regex(/^[a-z0-9_]{3,24}$/)),
-  }).strict().safeParse(input);
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
+  const parsed = z
+    .object({
+      clubId: z.string().uuid(),
+      username: z
+        .string()
+        .trim()
+        .transform((v) => v.replace(/^@/, '').toLowerCase())
+        .pipe(z.string().regex(/^[a-z0-9_]{3,24}$/)),
+    })
+    .strict()
+    .safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Informe um nome de usuário válido (@leitor).' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para convidar leitores.' };
@@ -118,31 +143,41 @@ export async function inviteByUsername(input: unknown): Promise<Result> {
 }
 
 export async function revokeInvitation(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = z.object({ invitationId: z.string().uuid() }).safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Convite inválido.', code: 'validation' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para revogar.', code: 'unauthenticated' };
 
-  const { data, error } = await session.client.rpc('revoke_club_invitation', { p_invitation: parsed.data.invitationId });
+  const { data, error } = await session.client.rpc('revoke_club_invitation', {
+    p_invitation: parsed.data.invitationId,
+  });
   if (error || data !== true) return { ok: false, message: 'Não foi possível revogar o convite.' };
   revalidatePath('/clubes');
   return { ok: true, message: 'Convite revogado.' };
 }
 
 export async function acceptInvitation(input: unknown): Promise<Result> {
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
   const parsed = z.object({ invitationId: z.string().uuid() }).safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Convite inválido.', code: 'validation' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para aceitar.', code: 'unauthenticated' };
 
-  const { data, error } = await session.client.rpc('accept_club_invitation', { p_invitation: parsed.data.invitationId });
+  const { data, error } = await session.client.rpc('accept_club_invitation', {
+    p_invitation: parsed.data.invitationId,
+  });
   if (error || data !== true) return { ok: false, message: 'Não foi possível aceitar o convite.' };
   revalidatePath('/clubes');
+  revalidatePath('/notificacoes');
   return { ok: true, message: 'Convite aceito.' };
 }
 
 export async function removeMember(input: unknown): Promise<Result> {
-  const parsed = z.object({ clubId: z.string().uuid(), memberId: z.string().uuid() }).safeParse(input);
+  if (isReadOnlyPreview()) return { ok: false, message: READ_ONLY_PREVIEW_MESSAGE };
+  const parsed = z
+    .object({ clubId: z.string().uuid(), memberId: z.string().uuid() })
+    .safeParse(input);
   if (!parsed.success) return { ok: false, message: 'Membro inválido.', code: 'validation' };
   const session = await requireSession();
   if (!session) return { ok: false, message: 'Entre para administrar.', code: 'unauthenticated' };

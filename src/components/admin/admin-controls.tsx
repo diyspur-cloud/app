@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createBook, hideReportedContent, reviewReport, updateBook, updateChapter, updateMeeting, updatePoll, updateSeason, type AdminResult } from '@/app/admin/actions';
+import { createBook, updateBook, updateChapter, updateMeeting, updatePoll, updateSeason, type AdminResult } from '@/app/admin/actions';
+import { moderateContentReportAction } from '@/features/moderation/actions';
 
 function Feedback({ result }: { result: AdminResult | null }) { return result ? <p className={result.ok ? 'action-feedback' : 'action-feedback'} role="status">{result.message}</p> : null; }
 
@@ -97,4 +98,44 @@ export function StatusControl({ kind, id, status }: { kind: 'meeting'|'poll'; id
   const options = kind === 'meeting' ? [['scheduled','Agendado'],['live','Ao vivo'],['done','Encerrado'],['cancelled','Cancelado']] : [['open','Aberta'],['closed','Fechada']];
   return <div className="admin-inline-control"><select className="field" defaultValue={status} onChange={(e) => start(async () => setResult(kind === 'meeting' ? await updateMeeting({ id, status: e.target.value }) : await updatePoll({ id, status: e.target.value })))} disabled={busy}>{options.map(([value,label]) => <option value={value} key={value}>{label}</option>)}</select><Feedback result={result} /></div>;
 }
-export function ReportControl({ id }: { id: string }) { const [result, setResult] = useState<AdminResult | null>(null); const [busy, start] = useTransition(); return <div className="chapter-progress-actions"><button className="button button-small" disabled={busy} onClick={() => start(async () => setResult(await hideReportedContent({ id })))}>Ocultar e resolver</button><button className="button button-quiet button-small" disabled={busy} onClick={() => start(async () => setResult(await reviewReport({ id, status: 'resolved' })))}>Resolver</button><button className="button button-quiet button-small" disabled={busy} onClick={() => start(async () => setResult(await reviewReport({ id, status: 'dismissed' })))}>Dispensar</button><Feedback result={result} /></div>; }
+export function ReportControl({ id }: { id: string }) {
+  const [result, setResult] = useState<AdminResult | null>(null);
+  const [busy, start] = useTransition();
+
+  const handleAction = (action: 'hide_content' | 'resolve' | 'dismiss') => {
+    start(async () => {
+      const res = await moderateContentReportAction({
+        reportId: id,
+        action,
+      });
+      setResult(res);
+    });
+  };
+
+  return (
+    <div className="chapter-progress-actions flex flex-wrap gap-2 mt-3">
+      <button
+        className="button button-small"
+        disabled={busy}
+        onClick={() => handleAction('hide_content')}
+      >
+        Ocultar conteúdo
+      </button>
+      <button
+        className="button button-quiet button-small"
+        disabled={busy}
+        onClick={() => handleAction('resolve')}
+      >
+        Resolver
+      </button>
+      <button
+        className="button button-quiet button-small"
+        disabled={busy}
+        onClick={() => handleAction('dismiss')}
+      >
+        Dispensar
+      </button>
+      <Feedback result={result} />
+    </div>
+  );
+}

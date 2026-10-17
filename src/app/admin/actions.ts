@@ -6,12 +6,14 @@ import { requireSession } from '@/lib/auth/session';
 import { mapDatabaseError } from '@/lib/actions/database-errors';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
+import { isReadOnlyPreview } from '@/lib/actions/read-only';
+
 const uuid = z.string().uuid();
 const bookSchema = z.object({
   id: uuid,
   title: z.string().trim().min(1).max(200),
   synopsis: z.string().trim().max(20000),
-  coverUrl: z.string().url().or(z.literal('')),
+  coverUrl: z.string().url().refine((v) => v.startsWith('https://'), 'URL da capa deve usar HTTPS.').or(z.literal('')),
   totalPages: z.coerce.number().int().nonnegative().nullable(),
 }).strict();
 
@@ -45,6 +47,7 @@ const pollSchema = z.object({
 export type AdminResult = { ok: true; message: string } | { ok: false; message: string; code?: string };
 
 async function adminContext() {
+  if (isReadOnlyPreview()) return null;
   const session = await requireSession();
   if (!session) return null;
   const { data, error } = await session.client.rpc('is_admin');

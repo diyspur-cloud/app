@@ -5,13 +5,16 @@ import { NotificationList } from './notification-list';
 import { getNotificationsPageData } from './queries';
 import { ClubInvitations } from '@/components/clubs/club-invitations';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Notificações',
   robots: { index: false, follow: false },
 };
 
 export default async function NotificationsPage() {
-  const { userId, notifications, invitations, error } = await getNotificationsPageData();
+  const { userId, notifications, invitations, preferences, error } =
+    await getNotificationsPageData();
 
   return (
     <section className="container">
@@ -40,7 +43,11 @@ export default async function NotificationsPage() {
               <h2 id="notifications-heading">Suas notificações</h2>
             </div>
           </div>
-          <NotificationList notifications={notifications} error={error} />
+          <NotificationList
+            notifications={notifications}
+            preferences={preferences}
+            error={error}
+          />
         </section>
       )}
     </section>

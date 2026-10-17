@@ -5,6 +5,8 @@ import { requireSession } from '@/lib/auth/session';
 import { getUserReadingGoal } from '@/features/goals/queries';
 import { GoalForm } from '@/components/goals/goal-form';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Metas de leitura',
   description: 'Defina e acompanhe seus objetivos anuais de leitura.',

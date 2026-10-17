@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ReportControl } from '@/components/admin/admin-controls';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Moderação · Administração', robots: { index: false, follow: false } };
 export default async function ModerationPage() {
   const client = await createServerSupabase(); const { data: claims } = await client.auth.getClaims(); if (typeof claims?.claims?.sub !== 'string') redirect('/entrar?redirect=/admin/moderation');

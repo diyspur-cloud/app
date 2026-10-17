@@ -3,6 +3,7 @@ import { createServerSupabase } from '@/lib/supabase/clients';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DesktopNav } from '@/components/desktop-nav';
 import { MobileNav } from '@/components/mobile-nav';
+import { NotificationHeader } from '@/components/notifications/notification-header';
 import { supportEmail } from '@/lib/site-contact';
 
 export async function SiteHeader() {
@@ -29,7 +30,8 @@ export async function SiteHeader() {
           <ThemeToggle />
           {signedIn ? (
             <>
-              <Link className="nav-signin" href="/perfil">Meu espaço</Link>
+              <Link className="nav-signin nav-signin-desktop" href="/perfil">Meu espaço</Link>
+              <NotificationHeader />
               <form action="/auth/signout" method="post">
                 <button className="btn btn-ghost btn-sm" type="submit">Sair</button>
               </form>

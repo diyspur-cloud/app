@@ -36,10 +36,15 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
     };
   }, []);
 
-  const isExploreActive = pathname.startsWith('/livros') || pathname.startsWith('/clubes');
+  const isExploreActive =
+    pathname.startsWith('/livros') ||
+    pathname.startsWith('/temporadas') ||
+    pathname.startsWith('/capitulos') ||
+    pathname.startsWith('/clubes');
   const isCommunityActive =
     pathname.startsWith('/comunidade') ||
     pathname.startsWith('/calendario') ||
+    pathname.startsWith('/eventos') ||
     pathname.startsWith('/votacao');
   const isPersonalActive = memberLinks.some(
     (link) => pathname === link.href || pathname.startsWith(link.href + '/')
@@ -68,7 +73,7 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
             onClick={() => setOpenDropdown(null)}
           >
             <span className="nav-dropdown-item-label">Livros</span>
-            <span className="nav-dropdown-item-desc">Catálogo, sinopses e temporadas</span>
+            <span className="nav-dropdown-item-desc">Catálogo, sinopses e grupos oficiais</span>
           </Link>
           <Link
             className="nav-dropdown-item"
@@ -77,7 +82,7 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
             onClick={() => setOpenDropdown(null)}
           >
             <span className="nav-dropdown-item-label">Clubes</span>
-            <span className="nav-dropdown-item-desc">Grupos e leituras ativas</span>
+            <span className="nav-dropdown-item-desc">Grupos oficiais e clubes da comunidade</span>
           </Link>
         </div>
       </div>
@@ -111,7 +116,7 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
             onClick={() => setOpenDropdown(null)}
           >
             <span className="nav-dropdown-item-label">Encontros</span>
-            <span className="nav-dropdown-item-desc">Agenda de conversas ao vivo</span>
+            <span className="nav-dropdown-item-desc">Agenda de conversas por livro e clube</span>
           </Link>
           <Link
             className="nav-dropdown-item"
@@ -139,6 +144,15 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
             <span className="nav-dropdown-chevron" aria-hidden="true">▼</span>
           </button>
           <div className={`nav-dropdown-menu ${openDropdown === 'personal' ? 'open' : ''}`} role="menu">
+            <Link
+              className="nav-dropdown-item"
+              href="/historico"
+              role="menuitem"
+              onClick={() => setOpenDropdown(null)}
+            >
+              <span className="nav-dropdown-item-label">Histórico de leitura</span>
+              <span className="nav-dropdown-item-desc">Livros em leitura, lidos e capítulos</span>
+            </Link>
             <Link
               className="nav-dropdown-item"
               href="/diario"
@@ -182,7 +196,7 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
               onClick={() => setOpenDropdown(null)}
             >
               <span className="nav-dropdown-item-label">Ranking</span>
-              <span className="nav-dropdown-item-desc">Posição na temporada por XP</span>
+              <span className="nav-dropdown-item-desc">Leitores por XP e livros mais lidos</span>
             </Link>
           </div>
         </div>

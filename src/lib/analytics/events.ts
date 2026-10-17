@@ -13,7 +13,15 @@ export type AnalyticsEvent =
   | 'onboarding_started'
   | 'onboarding_completed'
   | 'activation_completed'
-  | 'return_session_started';
+  | 'return_session_started'
+  | 'book_group_opened'
+  | 'chapter_discussion_opened'
+  | 'channel_spoiler_accepted'
+  | 'club_message_sent'
+  | 'book_reading_status_changed'
+  | 'club_meeting_created'
+  | 'notification_bell_opened'
+  | 'notification_clicked';
 
 export const ALLOWED_PROPERTIES: Record<AnalyticsEvent, readonly string[]> = {
   page_viewed: ['page_path', 'page_type'],
@@ -31,6 +39,14 @@ export const ALLOWED_PROPERTIES: Record<AnalyticsEvent, readonly string[]> = {
   onboarding_completed: ['step_id'],
   activation_completed: ['activation_version'],
   return_session_started: ['session_type'],
+  book_group_opened: ['book_slug', 'club_slug', 'source'],
+  chapter_discussion_opened: ['chapter_id', 'club_slug', 'channel_slug', 'has_video_sec'],
+  channel_spoiler_accepted: ['channel_slug', 'spoiler_policy'],
+  club_message_sent: ['club_slug', 'channel_slug', 'is_reply', 'has_video_sec'],
+  book_reading_status_changed: ['book_slug', 'status'],
+  club_meeting_created: ['club_slug', 'kind', 'spoiler_policy'],
+  notification_bell_opened: ['unread_count'],
+  notification_clicked: ['kind', 'unread'],
 };
 
 export function sanitizeAnalyticsProperties(

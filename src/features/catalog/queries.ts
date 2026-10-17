@@ -19,7 +19,24 @@ export type Chapter = { id: string; season_id: string; number: number; title: st
 export type ChapterAccess = { chapter_id: string; chapter_number: number; chapter_title: string; reading_range: string | null; published_at: string | null; can_open: boolean; requires_quiz: boolean };
 type ChapterNavigation = { id: string; number: number; title: string; published_at: string | null; canOpen: boolean };
 export type SeasonMilestone = { id: string; title: string; description: string | null; chapter_from: number | null; chapter_to: number | null; target_date: string | null; completed: boolean };
-export type Meeting = { id: string; chapter_id: string; title: string; status: string; kind: string; scheduled_at: string; duration_min: number | null; meeting_url: string | null; location: string | null; agenda: string | null };
+export type Meeting = {
+  id: string;
+  chapter_id: string | null;
+  book_id?: string | null;
+  club_id?: string | null;
+  title: string;
+  status: string;
+  kind: string;
+  scheduled_at: string;
+  duration_min: number | null;
+  meeting_url: string | null;
+  location: string | null;
+  agenda: string | null;
+  spoiler_policy?: string | null;
+  version?: number;
+  books?: { id: string; slug: string; title: string } | null;
+  user_clubs?: { id: string; slug: string; name: string } | null;
+};
 
 export const getBooks = cache(async (search?: string): Promise<Book[]> => {
   const client = await createServerSupabase();
@@ -143,9 +160,18 @@ export const getUpcomingMeetings = cache(async (limit: number = 6): Promise<Meet
 
 export const getMeetings = cache(async (): Promise<Meeting[]> => {
   const client = await createServerSupabase();
-  const { data, error } = await client.from('meetings').select('id,chapter_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda').order('scheduled_at').limit(36);
-  if (error) { console.error('Meetings query failed', error.code); return []; }
-  return (data ?? []) as Meeting[];
+  const { data, error } = await client
+    .from('meetings')
+    .select(
+      'id,chapter_id,book_id,club_id,title,status,kind,scheduled_at,duration_min,meeting_url,location,agenda,spoiler_policy,version,books(id,slug,title),user_clubs(id,slug,name)',
+    )
+    .order('scheduled_at')
+    .limit(36);
+  if (error) {
+    console.error('Meetings query failed', error.code);
+    return [];
+  }
+  return (data ?? []) as unknown as Meeting[];
 });
 
 export const getChapters = cache(async (id: string) => {

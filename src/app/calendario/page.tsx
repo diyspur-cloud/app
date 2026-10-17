@@ -29,6 +29,30 @@ export default async function CalendarPage() {
   ]);
 
   const signedIn = typeof claimsResult?.data?.claims?.sub === 'string';
+  const userId = claimsResult?.data?.claims?.sub ?? null;
+
+  let managedClubs: Array<{ slug: string; name: string }> = [];
+  if (signedIn && userId) {
+    try {
+      const supabase = await createServerSupabase();
+      const { data } = await supabase
+        .from('user_club_members')
+        .select('club_id, role, user_clubs!inner(slug, name)')
+        .eq('user_id', userId)
+        .in('role', ['owner', 'moderator']);
+      if (data) {
+        managedClubs = (data as unknown as Array<{ user_clubs: { slug: string; name: string } }>).map(
+          (m) => ({
+            slug: m.user_clubs.slug,
+            name: m.user_clubs.name,
+          }),
+        );
+      }
+    } catch {
+      managedClubs = [];
+    }
+  }
+
   const rsvps = signedIn ? await getMeetingRsvpMap(meetings.map((meeting) => meeting.id)) : {};
   const now = Date.now();
   const getState = (meeting: typeof meetings[number]): MeetingState => getMeetingState(meeting, now);
@@ -65,30 +89,47 @@ export default async function CalendarPage() {
           </span>
         </div>
         <div style={{ flex: 1 }}>
-          <h3>{meeting.title}</h3>
+          <h3>
+            <Link href={`/eventos/${meeting.id}`} className="hover:underline">
+              {meeting.title}
+            </Link>
+          </h3>
+          <div className="flex flex-wrap gap-2 my-1 text-xs">
+            {meeting.books?.title && (
+              <Link href={`/livros/${meeting.books.slug}`} className="badge badge-secondary hover:underline">
+                📖 {meeting.books.title}
+              </Link>
+            )}
+            {meeting.user_clubs?.name && (
+              <Link href={`/clubes/${meeting.user_clubs.slug}`} className="badge badge-secondary hover:underline">
+                👥 {meeting.user_clubs.name}
+              </Link>
+            )}
+          </div>
           <p>
             {formatDate(date)}
             {meeting.duration_min ? ` · ${meeting.duration_min} min` : ''} · horário de Brasília
           </p>
           {meeting.agenda && <p>{meeting.agenda}</p>}
-          {meeting.meeting_url && /^https:\/\//i.test(meeting.meeting_url) && !['finished', 'cancelled'].includes(state) ? (
-            <p>
+          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+            <Link href={`/eventos/${meeting.id}`} className="text-link font-medium">
+              Ver detalhes do encontro &rarr;
+            </Link>
+            {meeting.meeting_url && /^https:\/\//i.test(meeting.meeting_url) && !['finished', 'cancelled'].includes(state) ? (
               <a className="text-link" href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
-                Abrir transmissão do debate ↗
+                Entrar na transmissão ↗
               </a>
-            </p>
-          ) : meeting.location?.toLowerCase().includes('online') && !['finished', 'cancelled'].includes(state) ? (
-            <p className="field-hint">A plataforma e as instruções de acesso serão publicadas pela equipe.</p>
-          ) : meeting.location ? (
-            <p>{meeting.location}</p>
-          ) : null}
+            ) : null}
+          </div>
           {state !== 'cancelled' && (
-            <MeetingRsvp
-              meetingId={meeting.id}
-              initialAttending={rsvps[meeting.id] ?? null}
-              signedIn={signedIn}
-              disabled={state === 'finished'}
-            />
+            <div className="mt-3">
+              <MeetingRsvp
+                meetingId={meeting.id}
+                initialAttending={rsvps[meeting.id] ?? null}
+                signedIn={signedIn}
+                disabled={state === 'finished'}
+              />
+            </div>
           )}
         </div>
         <div style={{ display: 'grid', gap: 8, justifyItems: 'end', alignContent: 'start' }}>
@@ -139,6 +180,16 @@ export default async function CalendarPage() {
           <em>marcada.</em>
         </h1>
         <p>Encontros para dividir impressões, ouvir outros pontos de vista e descobrir novas camadas das histórias.</p>
+        {managedClubs.length > 0 && (
+          <div className="mt-4">
+            <Link
+              href={`/clubes/${managedClubs[0].slug}/eventos/novo`}
+              className="button button-small button-primary inline-flex items-center gap-1"
+            >
+              + Agendar encontro em {managedClubs[0].name}
+            </Link>
+          </div>
+        )}
       </header>
 
       {upcoming.length ? (

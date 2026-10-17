@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { joinClub, leaveClub } from '@/features/clubs/actions';
+import { acceptInvitation, joinClub, leaveClub } from '@/features/clubs/actions';
 
 export function ClubMembershipActions({
   clubId,
   isMember,
   isOwner,
   isPrivate,
+  pendingInvitationId,
 }: {
   clubId: string;
   isMember: boolean;
   isOwner: boolean;
   isPrivate: boolean;
+  pendingInvitationId?: string | null;
 }) {
   const [busy, startTransition] = useTransition();
   const [feedback, setFeedback] = useState('');
@@ -33,6 +35,14 @@ export function ClubMembershipActions({
     });
   }
 
+  function handleAcceptInvite(invitationId: string) {
+    startTransition(async () => {
+      const result = await acceptInvitation({ invitationId });
+      setFeedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
+
   return (
     <div className="club-membership-actions">
       <div className="club-membership-buttons">
@@ -44,6 +54,15 @@ export function ClubMembershipActions({
             onClick={() => run(leaveClub)}
           >
             {busy ? 'Saindo…' : 'Sair do clube'}
+          </button>
+        ) : pendingInvitationId ? (
+          <button
+            className="btn btn-primary btn-sm"
+            type="button"
+            disabled={busy}
+            onClick={() => handleAcceptInvite(pendingInvitationId)}
+          >
+            {busy ? 'Aceitando…' : 'Aceitar convite do clube'}
           </button>
         ) : (
           <button

@@ -171,13 +171,22 @@ export function MobileNav({ signedIn = false }: MobileNavProps) {
 
         <div className="nav-mobile-actions">
           {signedIn ? (
-            <Link
-              href="/perfil"
-              className="btn btn-secondary btn-block"
-              onClick={() => setOpen(false)}
-            >
-              Meu espaço
-            </Link>
+            <>
+              <Link
+                href="/perfil"
+                className="btn btn-secondary btn-block"
+                onClick={() => setOpen(false)}
+              >
+                Meu espaço
+              </Link>
+              <Link
+                href="/notificacoes"
+                className="btn btn-ghost btn-block"
+                onClick={() => setOpen(false)}
+              >
+                Central de notificações
+              </Link>
+            </>
           ) : (
             <>
               <Link

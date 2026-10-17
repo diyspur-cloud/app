@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/clients';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Administração', robots: { index: false, follow: false } };
 
 export default async function AdminPage() {

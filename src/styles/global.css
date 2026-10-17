@@ -3393,3 +3393,443 @@ img, svg {
   min-height: 44px;
 }
 
+
+/* =====================================================================
+   SDD — DIYSPUR: Comunidade de Leitura Integrada (v1.0)
+   Estilos Globais: Notificações, Canais, Discussões, Leituras e Encontros
+   ===================================================================== */
+
+/* 1. Central de Notificações e Header Bell */
+.notification-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notification-bell-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-button, 8px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms);
+}
+
+.notification-bell-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.notification-bell-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.notification-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: 480px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: var(--shadow-xl);
+  z-index: 999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.notification-popover-header h3 {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.notification-popover-list {
+  overflow-y: auto;
+  max-height: 380px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.notification-item {
+  position: relative;
+  display: block;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--duration-fast, 150ms);
+}
+
+.notification-item:hover {
+  background: var(--surface-2);
+}
+
+.notification-item.unread {
+  background: rgba(var(--brand-rgb, 196, 75, 43), 0.06);
+}
+
+.notification-item.unread::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 16px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.notification-item-title {
+  display: block;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.notification-item-desc {
+  display: block;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notification-item-time {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* 2. Workspace de Canais de Discussão (SDD 12.3) */
+.channel-workspace {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  min-height: 600px;
+}
+
+@media (min-width: 768px) {
+  .channel-workspace {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+.channel-sidebar {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channel-directory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-directory-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius-button, 8px);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-body-sm);
+  transition: all var(--duration-fast, 150ms);
+}
+
+.channel-directory-item:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.channel-directory-item.active {
+  background: var(--surface-1);
+  color: var(--brand);
+  font-weight: var(--weight-semibold);
+  border: 1px solid var(--border);
+}
+
+.channel-chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 12px);
+  overflow: hidden;
+}
+
+.channel-chat-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.channel-messages-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-message-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-message-bubble.is-own {
+  align-self: flex-end;
+  background: var(--surface-1);
+  border-color: var(--brand);
+}
+
+.chat-message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.chat-message-content {
+  font-size: var(--text-body-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.message-composer-box {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.message-composer-box textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: var(--radius-button, 8px);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  resize: vertical;
+}
+
+/* 3. Spoilers e Blur Control */
+.spoiler-blur {
+  filter: blur(8px);
+  user-select: none;
+  cursor: pointer;
+  transition: filter var(--duration-fast, 150ms);
+}
+
+.spoiler-blur.revealed {
+  filter: none;
+  user-select: auto;
+}
+
+/* 4. Controle de Leitura Canônica e Estatísticas (SDD 12.5) */
+.book-reading-control {
+  padding: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 12px);
+}
+
+.book-reading-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.book-reading-pill {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast, 150ms);
+}
+
+.book-reading-pill:hover {
+  border-color: var(--brand);
+  color: var(--text-primary);
+}
+
+.book-reading-pill.active {
+  background: var(--brand);
+  color: #ffffff;
+  border-color: var(--brand);
+}
+
+.book-reading-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 12px);
+}
+
+.book-reading-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.book-reading-stat-item strong {
+  font-size: var(--text-title-sm, 1.25rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.book-reading-stat-item span {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.book-reading-stat-item.is-rank strong {
+  color: var(--brand);
+}
+
+/* 5. Encontros e Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-badge.badge-scheduled {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.status-badge.badge-live {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  animation: pulse-live 2s infinite;
+}
+
+.status-badge.badge-done {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.status-badge.badge-cancelled {
+  background: rgba(107, 114, 128, 0.15);
+  color: #4b5563;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Formulário de Encontros */
+.meeting-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.meeting-form .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .meeting-form .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.meeting-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.meeting-form-actions button {
+  min-height: 48px;
+  padding: 0 20px;
+}

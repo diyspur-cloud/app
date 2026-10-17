@@ -1,15 +1,31 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   inviteByUsername,
   removeMember,
   revokeInvitation,
   updateClub,
 } from '@/features/clubs/actions';
+import {
+  createTopicChannelAction,
+  setClubMemberRoleAction,
+} from '@/features/discussions/actions';
 
-type Member = { user_id: string; role: string; displayName?: string | null; username?: string | null };
-type Invitation = { id: string; invited_user_id: string; expires_at: string; displayName?: string | null; username?: string | null };
+type Member = {
+  user_id: string;
+  role: string;
+  displayName?: string | null;
+  username?: string | null;
+};
+type Invitation = {
+  id: string;
+  invited_user_id: string;
+  expires_at: string;
+  displayName?: string | null;
+  username?: string | null;
+};
 type SeasonOption = { id: string; title: string; slug: string };
 
 export function ClubManagement({
@@ -25,14 +41,22 @@ export function ClubManagement({
     name: string;
     description: string | null;
     is_private: boolean;
+    kind?: string;
     current_season_id?: string | null;
   };
   members: Member[];
   invitations: Invitation[];
   seasons?: SeasonOption[];
 }) {
+  const router = useRouter();
+  const [version, setVersion] = useState(club.version);
   const [feedback, setFeedback] = useState('');
+  const [topicName, setTopicName] = useState('');
+  const [topicSlug, setTopicSlug] = useState('');
+  const [topicSpoilerPolicy, setTopicSpoilerPolicy] = useState<'none' | 'whole_book'>('none');
   const [busy, start] = useTransition();
+
+  const isOfficial = club.kind === 'official';
 
   function save(form: FormData) {
     start(async () => {
@@ -40,13 +64,19 @@ export function ClubManagement({
       const result = await updateClub({
         clubId: club.id,
         slug: club.slug,
-        version: club.version,
+        version,
         name: form.get('name'),
         description: form.get('description'),
-        isPrivate: form.get('private') === 'on',
+        isPrivate: isOfficial ? false : form.get('private') === 'on',
         seasonId: seasonValue ? seasonValue : null,
       });
       setFeedback(result.message);
+      if (result.ok) {
+        if (typeof result.data?.version === 'number') {
+          setVersion(result.data.version);
+        }
+        router.refresh();
+      }
     });
   }
 
@@ -57,6 +87,38 @@ export function ClubManagement({
         username: form.get('username'),
       });
       setFeedback(result.message);
+      if (result.ok) {
+        router.refresh();
+      }
+    });
+  }
+
+  function handleCreateTopicChannel(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    start(async () => {
+      const normalizedSlug =
+        topicSlug.trim() ||
+        topicName
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+
+      const result = await createTopicChannelAction({
+        clubId: club.id,
+        clubSlug: club.slug,
+        name: topicName,
+        slug: normalizedSlug,
+        spoilerPolicy: topicSpoilerPolicy,
+        requestId: crypto.randomUUID(),
+      });
+      setFeedback(result.message ?? '');
+      if (result.ok) {
+        setTopicName('');
+        setTopicSlug('');
+        router.refresh();
+      }
     });
   }
 
@@ -65,14 +127,14 @@ export function ClubManagement({
       <div className="section-head">
         <div>
           <span className="eyebrow">Área do responsável</span>
-          <h2>Administrar clube</h2>
+          <h2>Administrar {isOfficial ? 'grupo oficial' : 'clube'}</h2>
         </div>
       </div>
 
       <form className="auth-form" action={save}>
         <label>
           Nome
-          <input className="field" name="name" defaultValue={club.name} />
+          <input className="field" name="name" defaultValue={club.name} required />
         </label>
         <label>
           Descrição
@@ -103,23 +165,68 @@ export function ClubManagement({
             </span>
           </label>
         )}
-        <label className="checkbox-line">
-          <input type="checkbox" name="private" defaultChecked={club.is_private} /> Clube privado
-        </label>
+        {!isOfficial && (
+          <label className="checkbox-line">
+            <input type="checkbox" name="private" defaultChecked={club.is_private} /> Clube privado
+          </label>
+        )}
         <button className="button button-small" disabled={busy}>
           Salvar configurações
         </button>
       </form>
 
-      <form className="auth-form" action={invite}>
-        <label>
-          Nome de usuário (@leitor)
-          <input className="field" name="username" required placeholder="@nome_do_leitor" />
-        </label>
-        <button className="button button-quiet button-small" disabled={busy}>
-          Convidar leitor por 7 dias
-        </button>
-      </form>
+      <div className="timeline" style={{ marginTop: '1.5rem' }}>
+        <h3>Novo canal de tópico</h3>
+        <form className="auth-form" onSubmit={handleCreateTopicChannel}>
+          <label>
+            Nome do canal
+            <input
+              className="field"
+              value={topicName}
+              onChange={(e) => setTopicName(e.target.value)}
+              placeholder="Ex.: Teorias e referências"
+              minLength={2}
+              maxLength={80}
+              required
+            />
+          </label>
+          <label>
+            Identificador (slug opcional)
+            <input
+              className="field"
+              value={topicSlug}
+              onChange={(e) => setTopicSlug(e.target.value)}
+              placeholder="Ex.: teorias-e-referencias"
+            />
+          </label>
+          <label>
+            Política de spoilers
+            <select
+              className="field"
+              value={topicSpoilerPolicy}
+              onChange={(e) => setTopicSpoilerPolicy(e.target.value as 'none' | 'whole_book')}
+            >
+              <option value="none">Sem spoilers</option>
+              <option value="whole_book">Spoilers liberados (requer aceite)</option>
+            </select>
+          </label>
+          <button className="button button-quiet button-small" type="submit" disabled={busy}>
+            Criar canal
+          </button>
+        </form>
+      </div>
+
+      {!isOfficial && (
+        <form className="auth-form" action={invite} style={{ marginTop: '1.5rem' }}>
+          <label>
+            Nome de usuário (@leitor)
+            <input className="field" name="username" required placeholder="@nome_do_leitor" />
+          </label>
+          <button className="button button-quiet button-small" disabled={busy}>
+            Convidar leitor por 7 dias
+          </button>
+        </form>
+      )}
 
       {invitations.length > 0 && (
         <div className="timeline">
@@ -127,19 +234,22 @@ export function ClubManagement({
           {invitations.map((inv) => (
             <div className="timeline-row" key={inv.id}>
               <span>
-                {inv.displayName ?? (inv.username ? `@${inv.username}` : `${inv.invited_user_id.slice(0, 8)}…`)}
+                {inv.displayName ??
+                  (inv.username ? `@${inv.username}` : `${inv.invited_user_id.slice(0, 8)}…`)}
                 {' · expira em '}
                 {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(
-                  new Date(inv.expires_at)
+                  new Date(inv.expires_at),
                 )}
               </span>
               <button
                 className="button button-quiet button-small"
                 disabled={busy}
                 onClick={() =>
-                  start(async () =>
-                    setFeedback((await revokeInvitation({ invitationId: inv.id })).message)
-                  )
+                  start(async () => {
+                    const res = await revokeInvitation({ invitationId: inv.id });
+                    setFeedback(res.message);
+                    if (res.ok) router.refresh();
+                  })
                 }
               >
                 Revogar
@@ -150,39 +260,66 @@ export function ClubManagement({
       )}
 
       <div className="timeline">
-        <h3>Membros</h3>
+        <h3>Membros ({members.length})</h3>
         {members.map((member) => (
           <div className="timeline-row" key={member.user_id}>
             <span>
               {member.displayName ?? (member.username ? `@${member.username}` : 'Leitor')}
               {' · '}
-              {member.role === 'owner' ? 'Responsável' : 'Membro'}
+              {member.role === 'owner'
+                ? 'Responsável'
+                : member.role === 'moderator'
+                  ? 'Moderador(a)'
+                  : 'Membro'}
             </span>
             {member.role !== 'owner' && (
-              <button
-                className="button button-quiet button-small"
-                disabled={busy}
-                onClick={() =>
-                  start(async () =>
-                    setFeedback(
-                      (
-                        await removeMember({
-                          clubId: club.id,
-                          memberId: member.user_id,
-                        })
-                      ).message
-                    )
-                  )
-                }
-              >
-                Remover
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className="button button-quiet button-small"
+                  disabled={busy}
+                  onClick={() =>
+                    start(async () => {
+                      const nextRole = member.role === 'moderator' ? 'member' : 'moderator';
+                      const res = await setClubMemberRoleAction({
+                        clubId: club.id,
+                        clubSlug: club.slug,
+                        memberId: member.user_id,
+                        role: nextRole,
+                      });
+                      setFeedback(res.message);
+                      if (res.ok) router.refresh();
+                    })
+                  }
+                >
+                  {member.role === 'moderator' ? 'Tornar membro' : 'Tornar moderador'}
+                </button>
+                <button
+                  className="button button-quiet button-small"
+                  disabled={busy}
+                  onClick={() =>
+                    start(async () => {
+                      const res = await removeMember({
+                        clubId: club.id,
+                        memberId: member.user_id,
+                      });
+                      setFeedback(res.message);
+                      if (res.ok) router.refresh();
+                    })
+                  }
+                >
+                  Remover
+                </button>
+              </div>
             )}
           </div>
         ))}
       </div>
 
-      {feedback && <p className="action-feedback" role="status">{feedback}</p>}
+      {feedback && (
+        <p className="action-feedback" role="status">
+          {feedback}
+        </p>
+      )}
     </section>
   );
 }

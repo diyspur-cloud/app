@@ -5,6 +5,7 @@ import { QuizPanel } from '@/components/quiz/quiz-panel';
 import { YouTubeFacade } from '@/components/youtube-facade';
 import { TimedCommentList } from '@/components/video/timed-comment-list';
 import { HostPrompt } from '@/components/chapters/host-prompt';
+import { DiscussionEntryButton } from '@/components/discussions/discussion-entry-button';
 import { getChapters } from '@/features/catalog/queries';
 import { getTimedComments } from '@/features/video-comments/queries';
 import type { Metadata } from 'next';
@@ -113,6 +114,14 @@ export default async function ChapterPage({
     author: authors.get(comment.user_id) ?? null,
   }));
   const timedComments = await getTimedComments(chapter.id);
+  const { data: chapterChannel } = await profileClient
+    .from('club_channels')
+    .select('id, slug, club_id, user_clubs!inner(slug)')
+    .eq('chapter_id', chapter.id)
+    .maybeSingle();
+
+  const clubSlug = (chapterChannel?.user_clubs as unknown as { slug: string } | undefined)?.slug ?? null;
+
   const meetingDate = meeting?.scheduled_at
     ? `${new Intl.DateTimeFormat('pt-BR', {
         dateStyle: 'full',
@@ -238,15 +247,30 @@ export default async function ChapterPage({
               </Link>
             </p>
           )}
-          <p className="aside-link">
-            <Link className="text-link" href="/comunidade">
-              Ir para as conversas →
-            </Link>
-          </p>
+          {chapterChannel && clubSlug ? (
+            <div className="aside-channel my-3">
+              <span className="eyebrow block mb-1">Debate deste capítulo</span>
+              <DiscussionEntryButton
+                mode="chapter"
+                chapterId={chapter.id}
+                label={`Entrar no debate do Cap. ${chapter.number}`}
+              />
+            </div>
+          ) : (
+            <p className="aside-link">
+              <Link className="text-link" href="/comunidade">
+                Ir para as conversas →
+              </Link>
+            </p>
+          )}
           {meeting && (
             <section className="meeting-card">
               <span className="eyebrow">Encontro associado</span>
-              <h3>{meeting.title}</h3>
+              <h3>
+                <Link href={`/eventos/${meeting.id}`} className="hover:underline">
+                  {meeting.title}
+                </Link>
+              </h3>
               {meetingDate && <p>{meetingDate}</p>}
               {meeting.duration_min && <p>{meeting.duration_min} minutos</p>}
               {meeting.status && (
@@ -260,16 +284,21 @@ export default async function ChapterPage({
                         : 'Encontro cancelado'}
                 </p>
               )}
-              {safeMeetingUrl && (
-                <a
-                  className="text-link"
-                  href={safeMeetingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Abrir encontro ↗
-                </a>
-              )}
+              <div className="flex flex-col gap-1 mt-2">
+                <Link href={`/eventos/${meeting.id}`} className="text-link text-sm font-medium">
+                  Ver detalhes e confirmar presença &rarr;
+                </Link>
+                {safeMeetingUrl && (
+                  <a
+                    className="text-link text-sm"
+                    href={safeMeetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Abrir transmissão ↗
+                  </a>
+                )}
+              </div>
             </section>
           )}
           <div className="notice">

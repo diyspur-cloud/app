@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 function extractId(value: string | null) {
@@ -26,12 +27,24 @@ function extractId(value: string | null) {
 export function YouTubeFacade({
   videoUrl,
   title,
+  startSeconds,
 }: {
   videoUrl: string | null;
   title: string;
+  startSeconds?: number;
 }) {
   const [active, setActive] = useState(false);
+  const searchParams = useSearchParams();
   const videoId = extractId(videoUrl);
+
+  const queryTime = searchParams?.get('t');
+  const parsedSeconds = queryTime ? parseInt(queryTime, 10) : startSeconds;
+  const initialStart =
+    Number.isFinite(parsedSeconds) && (parsedSeconds ?? 0) > 0
+      ? Math.floor(parsedSeconds!)
+      : undefined;
+
+  const startQuery = initialStart ? `&start=${initialStart}` : '';
 
   return (
     <div
@@ -40,7 +53,7 @@ export function YouTubeFacade({
     >
       {videoId && active ? (
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0${startQuery}`}
           title={`Vídeo: ${title}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"
@@ -60,10 +73,10 @@ export function YouTubeFacade({
           <div className="empty-state-mark" aria-hidden="true">
             ▷
           </div>
-          <h3>O encontro em vídeo vem aí</h3>
+          <h3>Vídeo em preparação</h3>
           <p>
-            Quando houver uma gravação disponível, ela aparecerá aqui. Nenhum conteúdo externo é
-            carregado antes do seu clique.
+            O episódio deste capítulo ainda não foi publicado. Volte em breve para acompanhar a
+            leitura guiada.
           </p>
         </div>
       )}

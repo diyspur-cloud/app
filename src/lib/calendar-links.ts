@@ -6,10 +6,25 @@ export interface CalendarMeeting {
   agenda?: string | null;
   location?: string | null;
   meeting_url?: string | null;
+  status?: string | null;
+  version?: number | null;
+  updated_at?: string | null;
 }
 
 function toGoogleDateString(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+export function sanitizeCalendarUrl(rawUrl?: string | null): string | null {
+  if (typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed.startsWith('https://')) return null;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' ? parsed.href : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -22,16 +37,17 @@ export function getGoogleCalendarUrl(meeting: CalendarMeeting): string {
 
   const startStr = toGoogleDateString(start);
   const endStr = toGoogleDateString(end);
+  const safeMeetingUrl = sanitizeCalendarUrl(meeting.meeting_url);
 
   const details = [
     meeting.agenda ?? 'Encontro do clube de leitura DIYSPUR.',
-    meeting.meeting_url ? `Link da transmissão: ${meeting.meeting_url}` : null,
+    safeMeetingUrl ? `Link da transmissão: ${safeMeetingUrl}` : null,
     'Horário de Brasília (America/Sao_Paulo).',
   ]
     .filter(Boolean)
     .join('\n\n');
 
-  const location = meeting.meeting_url || meeting.location || 'Online (DIYSPUR)';
+  const location = safeMeetingUrl || meeting.location || 'Online (DIYSPUR)';
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -51,18 +67,26 @@ export function getMeetingEventSchema(meeting: CalendarMeeting) {
   const start = new Date(meeting.scheduled_at);
   const durationMin = meeting.duration_min || 60;
   const end = new Date(start.getTime() + durationMin * 60 * 1000);
+  const safeMeetingUrl = sanitizeCalendarUrl(meeting.meeting_url);
 
   return {
     '@type': 'Event',
     name: meeting.title,
     startDate: start.toISOString(),
     endDate: end.toISOString(),
-    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
-    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: meeting.location && !safeMeetingUrl
+      ? 'https://schema.org/OfflineEventAttendanceMode'
+      : safeMeetingUrl && meeting.location
+        ? 'https://schema.org/MixedEventAttendanceMode'
+        : 'https://schema.org/OnlineEventAttendanceMode',
+    eventStatus:
+      meeting.status === 'cancelled'
+        ? 'https://schema.org/EventCancelled'
+        : 'https://schema.org/EventScheduled',
     description: meeting.agenda ?? 'Encontro do clube de leitura DIYSPUR.',
     location: {
       '@type': 'VirtualLocation',
-      url: meeting.meeting_url ?? 'https://diyspur.vercel.app/calendario',
+      url: safeMeetingUrl ?? 'https://diyspur.vercel.app/calendario',
     },
     organizer: {
       '@type': 'Organization',
@@ -84,3 +108,24 @@ export function escapeIcs(value: string): string {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 }
 
+/**
+ * Dobra linhas longas de acordo com o RFC 5545 (max 75 octetos por linha física).
+ */
+export function foldIcsLine(line: string): string {
+  const MAX_LEN = 75;
+  if (Buffer.byteLength(line, 'utf-8') <= MAX_LEN) return line;
+
+  const result: string[] = [];
+  let current = '';
+  for (const char of line) {
+    const candidate = current + char;
+    if (Buffer.byteLength(candidate, 'utf-8') > MAX_LEN) {
+      result.push(current);
+      current = ' ' + char;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) result.push(current);
+  return result.join('\r\n');
+}

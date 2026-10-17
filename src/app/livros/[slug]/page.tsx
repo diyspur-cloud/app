@@ -6,6 +6,11 @@ import { getBook } from '@/features/catalog/queries';
 import { AddBookToList } from '@/components/lists/add-book-to-list';
 import { AddQueueButton } from '@/components/up-next/add-queue-button';
 import { ShareBookButton } from '@/components/books/share-book-button';
+import { BookReadingControl } from '@/components/books/book-reading-control';
+import { BookReadingStats } from '@/components/books/book-reading-stats';
+import { BookCommunityPanel } from '@/components/books/book-community-panel';
+import { getBookReadingStats, getMyBookReadingState } from '@/features/reading/queries';
+import { createServerSupabase } from '@/lib/supabase/clients';
 import { JsonLd } from '@/components/json-ld';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -35,6 +40,62 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
   const { slug } = await params;
   const book = await getBook(slug);
   if (!book) notFound();
+
+  const [readingState, readingStats, communityData] = await Promise.all([
+    getMyBookReadingState(book.id),
+    getBookReadingStats(book.id),
+    (async () => {
+      try {
+        const supabase = await createServerSupabase();
+        const { data: club } = await supabase
+          .from('user_clubs')
+          .select('id,slug,name')
+          .eq('official_book_id', book.id)
+          .is('archived_at', null)
+          .maybeSingle();
+
+        if (!club) return null;
+
+        const [{ count: memberCount }, { count: channelsCount }, { data: upcomingMeetings }] =
+          await Promise.all([
+            supabase
+              .from('user_club_members')
+              .select('user_id', { count: 'exact', head: true })
+              .eq('club_id', club.id),
+            supabase
+              .from('club_channels')
+              .select('id', { count: 'exact', head: true })
+              .eq('club_id', club.id),
+            supabase
+              .from('meetings')
+              .select('id,title,scheduled_at,kind,chapter_id')
+              .eq('book_id', book.id)
+              .in('status', ['scheduled', 'live'])
+              .order('scheduled_at')
+              .limit(3),
+          ]);
+
+        return {
+          officialClub: {
+            id: club.id,
+            slug: club.slug,
+            name: club.name,
+            memberCount: memberCount ?? 0,
+          },
+          channelsCount: channelsCount ?? 0,
+          upcomingMeetings: (upcomingMeetings ?? []).map((m) => ({
+            id: m.id,
+            title: m.title,
+            scheduledAt: m.scheduled_at,
+            kind: m.kind,
+            chapterId: m.chapter_id,
+          })),
+        };
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
 
   const safeExternal = book.amazon_url && /^https:\/\//i.test(book.amazon_url);
   const authorWebsite = book.authors?.website_url && /^https:\/\//i.test(book.authors.website_url) ? book.authors.website_url : null;
@@ -181,9 +242,35 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
                 <AddBookToList bookId={book.id} lists={book.readerLists} />
               ) : null}
             </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <BookReadingControl
+                bookId={book.id}
+                bookSlug={book.slug}
+                initialState={readingState}
+                signedIn={Boolean(book.signedIn)}
+              />
+            </div>
+
+            {readingStats && (
+              <div style={{ marginTop: '16px' }}>
+                <BookReadingStats stats={readingStats} />
+              </div>
+            )}
           </div>
         </div>
       </header>
+
+      {communityData?.officialClub && (
+        <BookCommunityPanel
+          bookId={book.id}
+          bookTitle={book.title}
+          officialClub={communityData.officialClub}
+          channelsCount={communityData.channelsCount}
+          upcomingMeetings={communityData.upcomingMeetings}
+        />
+      )}
+
       <section className="section">
         <div className="section-head">
           <div>
