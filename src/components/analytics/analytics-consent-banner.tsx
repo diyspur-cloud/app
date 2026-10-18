@@ -21,16 +21,6 @@ export function AnalyticsConsentBanner() {
 
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          className="privacy-preferences-trigger"
-          onClick={() => setOpen(true)}
-          aria-label="Alterar preferências de analytics"
-        >
-          Preferências de privacidade
-        </button>
-      )}
       {open && (
         <aside
           role="dialog"

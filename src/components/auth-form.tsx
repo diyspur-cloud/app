@@ -123,31 +123,6 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
     }
   }
 
-  async function magicLink() {
-    setError('');
-    setMessage('');
-    const form = document.querySelector<HTMLFormElement>('#auth-form');
-    const email = String(new FormData(form ?? undefined).get('email') ?? '').trim();
-    const valid = emailSchema.safeParse(email);
-    if (!valid.success) {
-      setError('Digite seu email acima para receber o link.');
-      return;
-    }
-    setBusy(true);
-    try {
-      const { error: linkError } = await createBrowserSupabase().auth.signInWithOtp({
-        email: valid.data,
-        options: { emailRedirectTo: callbackUrl(destination) },
-      });
-      if (linkError) throw linkError;
-      setMessage('Se este endereço estiver cadastrado, enviaremos um link para entrar.');
-    } catch {
-      setError('Não foi possível enviar o link agora. Tente novamente.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <section className="auth-wrap">
       <div className="auth-card">
@@ -276,22 +251,12 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
           </button>
 
           {!signup && (
-            <>
-              <button
-                className="button button-quiet"
-                type="button"
-                onClick={magicLink}
-                disabled={busy || readOnlyPreview}
-              >
-                Receber um link de acesso
-              </button>
-              <Link
-                className="text-link auth-recovery-link"
-                href={{ pathname: '/recuperar-senha', query: { redirect: destination } }}
-              >
-                Esqueci minha senha
-              </Link>
-            </>
+            <Link
+              className="button button-quiet"
+              href={{ pathname: '/recuperar-senha', query: { redirect: destination } }}
+            >
+              Esqueci minha senha
+            </Link>
           )}
         </form>
 

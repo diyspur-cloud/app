@@ -16,13 +16,12 @@ const defaultSections: NavSection[] = [
     title: 'Explorar',
     items: [
       { href: '/livros', label: 'Explorar livros' },
-      { href: '/clubes', label: 'Clubes de leitura' },
     ],
   },
   {
     title: 'Comunidade',
     items: [
-      { href: '/comunidade', label: 'Conversas da comunidade' },
+      { href: '/comunidade', label: 'Clubes e Conversas' },
       { href: '/calendario', label: 'Encontros ao vivo' },
       { href: '/votacao', label: 'Votação do próximo livro' },
     ],

@@ -37,8 +37,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>O analytics de produto só é ativado se você conceder consentimento explícito.</strong>
-        {' '}A qualquer momento você pode alterar ou revogar sua escolha clicando no botão{' '}
-        <em>Preferências de privacidade</em> presente no rodapé de todas as páginas.
+        {' '}A qualquer momento você pode alterar ou revogar sua escolha pelo suporte do clube ou nas configurações da conta.
         A recusa ou revogação não impede nem limita o uso das funcionalidades do clube.
       </p>
 

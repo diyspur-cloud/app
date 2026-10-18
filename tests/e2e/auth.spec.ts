@@ -37,4 +37,12 @@ test.describe('Autenticação e Feedback Contextual', () => {
     await page.goto('/entrar?redirect=%2F%2Fevil.example.com');
     await expect(page.getByRole('button', { name: 'Entrar na comunidade' })).toBeVisible();
   });
+
+  test('tela de login exibe botão de esqueci minha senha e não possui magic link', async ({ page }) => {
+    await page.goto('/entrar');
+    const forgotPasswordLink = page.getByRole('link', { name: 'Esqueci minha senha' });
+    await expect(forgotPasswordLink).toBeVisible();
+    await expect(forgotPasswordLink).toHaveAttribute('href', /recuperar-senha/);
+    await expect(page.getByText('Receber um link de acesso')).not.toBeVisible();
+  });
 });

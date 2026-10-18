@@ -5,13 +5,14 @@ Frontend web do DIYSPUR, um clube de leitura em português do Brasil para descob
 - **Produção:** <https://diyspur.vercel.app/>
 - **Repositório:** <https://github.com/diyspur-cloud/app>
 - **Backend e banco:** <https://github.com/diyspur-cloud/db>
+- **Documentação centralizada:** <https://github.com/diyspur/docs>
 - **Stack:** Next.js App Router, React, TypeScript, Supabase SSR e CSS próprio.
 
 > O frontend não contém a chave `service_role`, não executa DDL e não substitui as policies/RPCs do repositório backend. Toda identidade, score, XP, papel administrativo e acesso a conteúdo protegido precisa ser confirmado no servidor/Supabase.
 
 ## Manual do usuário
 
-[Manual completo com guias por página, capturas, referência técnica e cobertura QA](docs/manual/00-overview.md). A rodada documentada distingue navegação executada de mutações e validações pendentes.
+[Manual completo com guias por página, capturas, referência técnica e cobertura QA](../docs/app-docs/manual/00-overview.md). A rodada documentada distingue navegação executada de mutações e validações pendentes.
 
 ## Índice
 
@@ -150,7 +151,7 @@ O frontend adota o design system do **Nimble (gitnimble.com)** com arquitetura e
 - **Resolução de Duplicação Editorial**: A rota `/temporadas/[slug]` (ex: `/temporadas/t1-verity`) elimina a redundância visual entre capítulos e marcos de leitura (milestones) que compartilham o mesmo número, suprimindo cards repetidos, higienizando prefixos (`"Capítulo X — "`) e corrigindo breadcrumbs duplicados.
 
 A especificação detalhada de cada token, componente e classe CSS está disponível no guia canônico:
-👉 [`docs/design-system.md`](./docs/design-system.md)
+👉 [`../docs/app-docs/design-system.md`](../docs/app-docs/design-system.md)
 
 ## Rotas
 
@@ -562,5 +563,5 @@ Esta release executa todas as melhorias e correções aprovadas no plano de reme
 - **TypeScript (`tsc --noEmit`):** 0 erros.
 - **ESLint (`eslint .`):** 0 erros e 0 avisos.
 - **Vitest (`vitest run`):** 94 testes aprovados em 26 suítes unitárias.
-- **Plano de Deploy Oficial:** Consulte [`../docs/deploy/README.md`](../docs/deploy/README.md) para as instruções completas com interação no navegador web.
+- **Plano de Deploy Oficial:** Consulte [`../docs/app-docs/deploy/README.md`](../docs/app-docs/deploy/README.md) ou o [Guia Completo de Deploy na documentação oficial](https://github.com/diyspur/docs) para as instruções completas com interação no navegador web.
 

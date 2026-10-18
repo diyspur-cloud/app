@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { memberLinks } from '@/lib/member-navigation';
 
 export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
-  const [openDropdown, setOpenDropdown] = useState<'explore' | 'community' | 'personal' | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<'community' | 'personal' | null>(null);
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -39,10 +39,10 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
   const isExploreActive =
     pathname.startsWith('/livros') ||
     pathname.startsWith('/temporadas') ||
-    pathname.startsWith('/capitulos') ||
-    pathname.startsWith('/clubes');
+    pathname.startsWith('/capitulos');
   const isCommunityActive =
     pathname.startsWith('/comunidade') ||
+    pathname.startsWith('/clubes') ||
     pathname.startsWith('/calendario') ||
     pathname.startsWith('/eventos') ||
     pathname.startsWith('/votacao');
@@ -53,39 +53,10 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
 
   return (
     <nav className="nav-links" aria-label="Navegação principal" ref={navRef}>
-      {/* Menu Dropdown: Explorar */}
-      <div className="nav-dropdown">
-        <button
-          type="button"
-          className={`nav-dropdown-trigger ${isExploreActive ? 'active' : ''}`}
-          onClick={() => setOpenDropdown((prev) => (prev === 'explore' ? null : 'explore'))}
-          aria-expanded={openDropdown === 'explore'}
-          aria-haspopup="true"
-        >
-          <span>Explorar</span>
-          <span className="nav-dropdown-chevron" aria-hidden="true">▼</span>
-        </button>
-        <div className={`nav-dropdown-menu ${openDropdown === 'explore' ? 'open' : ''}`} role="menu">
-          <Link
-            className="nav-dropdown-item"
-            href="/livros"
-            role="menuitem"
-            onClick={() => setOpenDropdown(null)}
-          >
-            <span className="nav-dropdown-item-label">Livros</span>
-            <span className="nav-dropdown-item-desc">Catálogo, sinopses e grupos oficiais</span>
-          </Link>
-          <Link
-            className="nav-dropdown-item"
-            href="/clubes"
-            role="menuitem"
-            onClick={() => setOpenDropdown(null)}
-          >
-            <span className="nav-dropdown-item-label">Clubes</span>
-            <span className="nav-dropdown-item-desc">Grupos oficiais e clubes da comunidade</span>
-          </Link>
-        </div>
-      </div>
+      {/* Link Direto: Livros */}
+      <Link className={isExploreActive ? 'active' : ''} href="/livros">
+        Livros
+      </Link>
 
       {/* Menu Dropdown: Comunidade */}
       <div className="nav-dropdown">
@@ -106,8 +77,8 @@ export function DesktopNav({ signedIn = false }: { signedIn?: boolean }) {
             role="menuitem"
             onClick={() => setOpenDropdown(null)}
           >
-            <span className="nav-dropdown-item-label">Conversas</span>
-            <span className="nav-dropdown-item-desc">Ideias e debates dos leitores</span>
+            <span className="nav-dropdown-item-label">Clubes e Conversas</span>
+            <span className="nav-dropdown-item-desc">Clubes de leitura, chats e debates</span>
           </Link>
           <Link
             className="nav-dropdown-item"

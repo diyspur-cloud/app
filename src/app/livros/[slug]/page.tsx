@@ -152,12 +152,12 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
             ) : null}
 
             {/* Seção Onde Comprar & Compartilhar Leitura */}
-            <div className="book-purchasing-panel" style={{ marginTop: '24px', padding: '16px', background: 'var(--surface-2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <div className="book-purchasing-panel">
               <span className="eyebrow">Acompanhe a leitura</span>
-              <p style={{ fontSize: 'var(--text-body-sm)', color: 'var(--text-secondary)', margin: '4px 0 14px' }}>
+              <p className="book-purchasing-hint">
                 Tenha seu exemplar físico ou digital (Kindle/e-Reader) para participar das conversas capítulo a capítulo.
               </p>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="book-purchasing-actions">
                 {safeExternal ? (
                   <a
                     className="btn btn-primary btn-sm"
@@ -176,7 +176,7 @@ export default async function BookDetailPage({ params }: { params: Promise<{ slu
                   Convidar amigo por e-mail
                 </Link>
                 {safeExternal ? (
-                  <p className="field-hint" style={{ fontSize: 'var(--text-caption)', color: 'var(--text-tertiary)', margin: '8px 0 0', width: '100%' }}>
+                  <p className="book-affiliate-disclaimer">
                     * Como participante do Programa de Associados da Amazon, o DIYSPUR pode receber uma comissão por compras qualificadas, sem nenhum custo extra para você.
                   </p>
                 ) : null}
